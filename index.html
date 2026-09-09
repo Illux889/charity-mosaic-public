@@ -6,648 +6,518 @@
 <meta name="color-scheme" content="light">
 <title>Velgørenhedsmosaik</title>
 <style>
-:root{
-  --ink:#181818;--muted:#6b6b6b;--line:#e4e4e4;--paper:#fff;--soft:#f7f7f5;
-  --accent:#b49645;--radius:12px;--shadow:0 18px 60px rgba(0,0,0,.12)
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
-body{overflow-x:hidden}
-button,input,select{font:inherit}
-button{cursor:pointer}
-button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-button:disabled{opacity:.45;cursor:default}
-[hidden]{display:none!important}
-.app{width:min(1500px,100%);margin:0 auto;padding:clamp(14px,2.4vw,34px)}
-.top{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:20px}
-.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#7b6a36;margin-bottom:7px}
-h1{margin:0;font-size:clamp(26px,3.2vw,44px);line-height:1.05;letter-spacing:-.035em;font-weight:650}
-.lead{margin:9px 0 0;max-width:720px;color:var(--muted);font-size:14px;line-height:1.55}
-.updated{font-size:11px;color:var(--muted);white-space:nowrap;padding-bottom:4px}
-.stats{display:grid;grid-template-columns:1.5fr 1fr;background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:22px;overflow:hidden}
-.stat{padding:18px 22px}.stat+.stat{border-left:1px solid var(--line)}
-.stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.stat strong{font-size:clamp(23px,3vw,34px);font-weight:650;letter-spacing:-.025em}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start}
-.viewer{min-width:0}
-.stage{position:relative;width:100%;aspect-ratio:1;background:#ececea;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;isolation:isolate}
-.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;background:#ececea}
-.stage canvas.dragging{cursor:grabbing}
-.state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--muted);background:#fafafa;z-index:3}
-.state strong{display:block;color:var(--ink);font-size:17px;margin-bottom:5px}
-.tooltip{position:absolute;z-index:5;display:none;pointer-events:none;background:rgba(18,18,18,.94);color:#fff;border-radius:7px;padding:8px 10px;font-size:12px;max-width:260px;box-shadow:0 5px 25px #0003}
-.controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:11px}
-.controls button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 11px;color:var(--ink)}
-.controls button:hover{background:var(--soft)}
-.controls .square{width:38px;padding:8px 0;font-size:18px;line-height:20px}
-.zoomline{display:flex;align-items:center;gap:8px;min-width:170px;flex:1}
-.zoomline input{width:100%;accent-color:var(--accent)}
-.zoomline output{min-width:52px;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.hint{font-size:11px;color:var(--muted);min-height:17px;margin-top:7px}
-.side{border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0;background:#fff}
-.side h2{margin:0;font-size:20px;letter-spacing:-.02em}.side p{margin:5px 0 14px;color:var(--muted);font-size:12px}
-.search{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;background:#fff;color:var(--ink)}
-.list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 4px;color:var(--muted);font-size:11px}
-.list-head select{border:0;background:#fff;color:var(--ink);font-size:11px;padding:4px 0;max-width:160px}
-.donor-list{max-height:610px;overflow:auto;overscroll-behavior:contain}
-.donor{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);border-radius:0;background:#fff;padding:11px 1px;color:var(--ink)}
-.donor:hover{background:var(--soft)}
-.donor-thumb{width:45px;height:45px;flex:0 0 45px;border:1px solid var(--line);border-radius:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff}
-.donor-thumb img{display:block;width:100%;height:100%;object-fit:contain}
-.donor-copy{min-width:0;flex:1}.donor-copy strong{display:block;font-size:13px;overflow-wrap:anywhere}.donor-copy small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.arrow{font-size:17px;color:#999}
-.empty-list{padding:24px 2px;color:var(--muted);font-size:13px}
-.footer{border-top:1px solid var(--line);margin-top:22px;padding-top:14px;color:var(--muted);font-size:10px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-dialog{width:min(720px,94vw);max-height:94dvh;border:1px solid var(--line);border-radius:16px;padding:20px;background:#fff;color:var(--ink);box-shadow:var(--shadow);overflow:auto}
-dialog::backdrop{background:#0008;backdrop-filter:blur(2px)}
-.dialog-head{display:flex;justify-content:space-between;gap:15px;align-items:start;margin-bottom:15px}.dialog-head h2{margin:0;font-size:22px}.dialog-head p{margin:4px 0 0;color:var(--muted);font-size:13px}.dialog-head button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 11px}
-.photo-wrap{width:100%;min-height:280px;max-height:62dvh;border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff}
-.photo-wrap img{display:block;max-width:100%;max-height:62dvh;width:auto;height:auto;object-fit:contain}
-.dialog-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.dialog-actions span{font-size:11px;color:var(--muted)}.dialog-actions button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:9px 13px}
+:root{--ink:#181818;--muted:#6b6b6b;--line:#e4e4e4;--paper:#fff;--soft:#f7f7f5;--accent:#b49645;--radius:12px;--shadow:0 18px 60px rgba(0,0,0,.12)}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif}body{overflow-x:hidden}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:3px solid var(--accent);outline-offset:2px}button:disabled{opacity:.45;cursor:default}[hidden]{display:none!important}
+.app{width:min(1500px,100%);margin:0 auto;padding:clamp(14px,2.4vw,34px)}.top{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:20px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#7b6a36;margin-bottom:7px}h1{margin:0;font-size:clamp(26px,3.2vw,44px);line-height:1.05;letter-spacing:-.035em;font-weight:650}.lead{margin:9px 0 0;max-width:720px;color:var(--muted);font-size:14px;line-height:1.55}.updated{font-size:11px;color:var(--muted);white-space:nowrap;padding-bottom:4px}
+.stats{display:grid;grid-template-columns:1.5fr 1fr;background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:22px;overflow:hidden}.stat{padding:18px 22px}.stat+.stat{border-left:1px solid var(--line)}.stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.stat strong{font-size:clamp(23px,3vw,34px);font-weight:650;letter-spacing:-.025em}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start}.viewer{min-width:0}.stage{position:relative;width:100%;aspect-ratio:1;background:#ececea;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;isolation:isolate}.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;background:#ececea}.stage canvas.dragging{cursor:grabbing}.state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--muted);background:#fafafa;z-index:3}.state strong{display:block;color:var(--ink);font-size:17px;margin-bottom:5px}.state progress{width:min(320px,80%);margin-top:12px;accent-color:var(--accent)}.tooltip{position:absolute;z-index:5;display:none;pointer-events:none;background:rgba(18,18,18,.94);color:#fff;border-radius:7px;padding:8px 10px;font-size:12px;max-width:260px;box-shadow:0 5px 25px #0003}
+.controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:11px}.controls button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 11px;color:var(--ink)}.controls button:hover{background:var(--soft)}.controls .square{width:38px;padding:8px 0;font-size:18px;line-height:20px}.zoomline{display:flex;align-items:center;gap:8px;min-width:170px;flex:1}.zoomline input{width:100%;accent-color:var(--accent)}.zoomline output{min-width:52px;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}.hint{font-size:11px;color:var(--muted);min-height:17px;margin-top:7px}
+.side{border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0;background:#fff}.side h2{margin:0;font-size:20px;letter-spacing:-.02em}.side p{margin:5px 0 14px;color:var(--muted);font-size:12px}.search{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;background:#fff;color:var(--ink)}.list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 4px;color:var(--muted);font-size:11px}.list-head select{border:0;background:#fff;color:var(--ink);font-size:11px;padding:4px 0;max-width:160px}.donor-list{max-height:610px;overflow:auto;overscroll-behavior:contain}.donor{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);border-radius:0;background:#fff;padding:11px 1px;color:var(--ink)}.donor:hover{background:var(--soft)}.donor-thumb{width:45px;height:45px;flex:0 0 45px;border:1px solid var(--line);border-radius:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff}.donor-thumb img{display:block;width:100%;height:100%;object-fit:contain}.donor-copy{min-width:0;flex:1}.donor-copy strong{display:block;font-size:13px;overflow-wrap:anywhere}.donor-copy small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.arrow{font-size:17px;color:#999}.empty-list{padding:24px 2px;color:var(--muted);font-size:13px}.footer{border-top:1px solid var(--line);margin-top:22px;padding-top:14px;color:var(--muted);font-size:10px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+dialog{width:min(720px,94vw);max-height:94dvh;border:1px solid var(--line);border-radius:16px;padding:20px;background:#fff;color:var(--ink);box-shadow:var(--shadow);overflow:auto}dialog::backdrop{background:#0008;backdrop-filter:blur(2px)}.dialog-head{display:flex;justify-content:space-between;gap:15px;align-items:start;margin-bottom:15px}.dialog-head h2{margin:0;font-size:22px}.dialog-head p{margin:4px 0 0;color:var(--muted);font-size:13px}.dialog-head button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 11px}.photo-wrap{width:100%;min-height:280px;max-height:62dvh;border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff}.photo-wrap img{display:block;max-width:100%;max-height:62dvh;width:auto;height:auto;object-fit:contain}.dialog-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.dialog-actions span{font-size:11px;color:var(--muted)}.dialog-actions button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:9px 13px}
 .viewer:fullscreen{width:100vw;height:100vh;background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px}.viewer:fullscreen .stage{width:min(calc(100vw - 24px),calc(100dvh - 105px));height:min(calc(100vw - 24px),calc(100dvh - 105px));flex:0 0 auto}.viewer:fullscreen .controls{width:min(100%,950px)}
-@media(max-width:960px){.layout{grid-template-columns:minmax(0,1fr) 285px;gap:16px}.side{padding:15px}.donor-list{max-height:520px}.top .updated{display:none}}
-@media(max-width:720px){.app{padding:12px}.top{margin-bottom:15px}.lead{font-size:13px}.stats{margin-bottom:16px}.stat{padding:14px}.layout{grid-template-columns:1fr;gap:18px}.side{padding:16px}.donor-list{max-height:390px}.zoomline{order:10;flex-basis:100%}.footer{margin-top:16px}.dialog-actions{align-items:stretch;flex-direction:column}.dialog-actions button{width:100%}}
+@media(max-width:960px){.layout{grid-template-columns:minmax(0,1fr) 285px;gap:16px}.side{padding:15px}.donor-list{max-height:520px}.top .updated{display:none}}@media(max-width:720px){.app{padding:12px}.top{margin-bottom:15px}.lead{font-size:13px}.stats{margin-bottom:16px}.stat{padding:14px}.layout{grid-template-columns:1fr;gap:18px}.side{padding:16px}.donor-list{max-height:390px}.zoomline{order:10;flex-basis:100%}.footer{margin-top:16px}.dialog-actions{align-items:stretch;flex-direction:column}.dialog-actions button{width:100%}}
 </style>
 </head>
 <body>
 <main class="app" id="app">
-  <header class="top">
-    <div>
-      <div class="eyebrow">Velgørenhedsmosaik</div>
-      <h1>Et kunstværk. Mange bidrag.</h1>
-      <p class="lead">Zoom ind i kunstværket og se de billeder, virksomheder og mennesker, der sammen har skabt det.</p>
-    </div>
-    <div class="updated" id="updated">Henter seneste version…</div>
-  </header>
-
-  <section class="stats" aria-label="Donationer">
-    <div class="stat"><small>Samlet doneret</small><strong id="total">—</strong></div>
-    <div class="stat"><small>Bidrag</small><strong id="count">—</strong></div>
-  </section>
-
-  <div class="layout">
-    <section class="viewer" id="viewer">
-      <div class="stage" id="stage">
-        <canvas id="mosaic" tabindex="0" aria-label="Interaktiv fotomosaik"></canvas>
-        <div class="state" id="state"><div><strong>Henter kunstværket…</strong><span>Et øjeblik.</span></div></div>
-        <div class="tooltip" id="tooltip"></div>
-      </div>
-      <div class="controls">
-        <button class="square" id="zoomOut" type="button" aria-label="Zoom ud">−</button>
-        <button class="square" id="zoomIn" type="button" aria-label="Zoom ind">+</button>
-        <div class="zoomline"><input id="zoomRange" type="range" min="0" max="100" value="0" aria-label="Zoom"><output id="zoomValue">100%</output></div>
-        <button id="fit" type="button">Hele kunstværket</button>
-        <button id="fullscreen" type="button">Fuld skærm</button>
-      </div>
-      <div class="hint" id="hint">Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.</div>
-    </section>
-
-    <aside class="side">
-      <h2>Bidragydere</h2>
-      <p>Se hvem der har været med, og hvor meget de har bidraget med.</p>
-      <input class="search" id="search" type="search" placeholder="Søg efter navn…" autocomplete="off">
-      <div class="list-head"><span id="listCount"></span><select id="sort" aria-label="Sortering"><option value="amount">Største bidrag</option><option value="name">Navn A–Å</option></select></div>
-      <div class="donor-list" id="donorList"></div>
-    </aside>
-  </div>
-
-  <footer class="footer"><span>4 × 4 meter · 1.600 felter á 10 × 10 cm</span><span id="status">Opdateres automatisk</span></footer>
+<header class="top"><div><div class="eyebrow">Velgørenhedsmosaik</div><h1>Et kunstværk. Mange bidrag.</h1><p class="lead">Zoom ind i kunstværket og se de billeder, virksomheder og mennesker, der sammen har skabt det.</p></div><div class="updated" id="updated">Henter seneste version…</div></header>
+<section class="stats" aria-label="Donationer"><div class="stat"><small>Samlet doneret</small><strong id="total">—</strong></div><div class="stat"><small>Bidrag</small><strong id="count">—</strong></div></section>
+<div class="layout">
+<section class="viewer" id="viewer"><div class="stage" id="stage"><canvas id="mosaic" tabindex="0" aria-label="Interaktiv fotomosaik"></canvas><div class="state" id="state"><div><strong id="stateTitle">Henter kunstværket…</strong><span id="stateText">Et øjeblik.</span><br><progress id="progress" max="100" value="0"></progress></div></div><div class="tooltip" id="tooltip"></div></div><div class="controls"><button class="square" id="zoomOut" type="button" aria-label="Zoom ud">−</button><button class="square" id="zoomIn" type="button" aria-label="Zoom ind">+</button><div class="zoomline"><input id="zoomRange" type="range" min="0" max="100" value="0" aria-label="Zoom"><output id="zoomValue">100%</output></div><button id="fit" type="button">Hele kunstværket</button><button id="fullscreen" type="button">Fuld skærm</button></div><div class="hint" id="hint">Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.</div></section>
+<aside class="side"><h2>Bidragydere</h2><p>Se hvem der har været med, og hvor meget de har bidraget med.</p><input class="search" id="search" type="search" placeholder="Søg efter navn…" autocomplete="off"><div class="list-head"><span id="listCount"></span><select id="sort" aria-label="Sortering"><option value="amount">Største bidrag</option><option value="name">Navn A–Å</option></select></div><div class="donor-list" id="donorList"></div></aside>
+</div>
+<footer class="footer"><span>4 × 4 meter · 1.600 felter á 10 × 10 cm</span><span id="status">Opdateres automatisk</span></footer>
 </main>
-
-<dialog id="preview">
-  <div class="dialog-head">
-    <div><h2 id="previewName"></h2><p id="previewMeta"></p></div>
-    <button type="button" id="closePreview">Luk</button>
-  </div>
-  <div class="photo-wrap" id="previewWrap"><img id="previewImage" alt=""></div>
-  <div class="dialog-actions"><span>Hele det indsendte billede vises uden beskæring.</span><button id="findTile" type="button">Find i kunstværket</button></div>
-</dialog>
-
-<img id="targetImage" src="target.jpg" alt="" hidden crossorigin="anonymous">
-
+<dialog id="preview"><div class="dialog-head"><div><h2 id="previewName"></h2><p id="previewMeta"></p></div><button type="button" id="closePreview">Luk</button></div><div class="photo-wrap" id="previewWrap"><img id="previewImage" alt=""></div><div class="dialog-actions"><span>Hele det indsendte billede vises uden beskæring.</span><button id="findTile" type="button">Find i kunstværket</button></div></dialog>
 <script>
 (() => {
+'use strict';
+const GRID=40,TILE=40,TOTAL=1600,POLL_MS=60000,MAX_ZOOM=40,TARGET_SRC='target.jpg';
+const DEFAULT_SETTINGS={tone_strength:94,photo_detail:55,original_colour:32};
+const $=id=>document.getElementById(id),canvas=$('mosaic'),ctx=canvas.getContext('2d',{alpha:false}),state=$('state'),tooltip=$('tooltip'),preview=$('preview');
+const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let publication=null,assets=[],result=null,signature='',pollTimer=null,renderWorker=null,loadController=null,targetTilesCache=null,targetReady=null;
+let correctedCanvas=document.createElement('canvas'),rawCanvas=document.createElement('canvas');correctedCanvas.width=rawCanvas.width=1600;correctedCanvas.height=rawCanvas.height=1600;
+const correctedContext=correctedCanvas.getContext('2d',{alpha:false}),rawContext=rawCanvas.getContext('2d',{alpha:false});
+let view={zoom:1,x:800,y:800,width:1,height:1,dpr:1,scale:1,left:0,top:0,span:1600},frame=null,pointers=new Map(),moved=false,pointerOrigin=null,selectedDonor=-1,selectedCell=-1;
+let detailWorker=null,detailRevision=0,detailBytes=0,detailTimer=null,detailViewToken=0,detailError='',detailUnavailable=false;const detailCache=new Map(),failedDetailKeys=new Set(),DETAIL_BUDGET=64*1024*1024;
+function fmtDate(value){const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('da-DK',{dateStyle:'short',timeStyle:'short'}):'';}
+function hashText(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(36)}
+function settingNumber(v,fallback){const n=Number(v);return Number.isFinite(n)?clamp(n>1?n/100:n,0,1):fallback;}
+function settingsFrom(data){return{preserveOriginals:false,strength:settingNumber(data?.tone_strength,.94),detail:settingNumber(data?.photo_detail,.55),originalColour:settingNumber(data?.original_colour,.32)};}
+function setBuildState(title,text,value=0,blocking=true){$('stateTitle').textContent=title;$('stateText').textContent=text;$('progress').value=clamp(value,0,100);state.hidden=!blocking;}
+function dataUrlBlob(src){const comma=src.indexOf(','),type=src.slice(5,src.indexOf(';')),bytes=atob(src.slice(comma+1)),buf=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)buf[i]=bytes.charCodeAt(i);return new Blob([buf],{type});}
+async function fetchBlob(src,signal){if(/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(src))return dataUrlBlob(src);const u=new URL(src,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Ugyldig billedadresse.');const r=await fetch(u.href,{signal,mode:'cors',cache:'force-cache'});if(!r.ok)throw Error('Billede kunne ikke hentes ('+r.status+').');return r.blob();}
+function decodeBlob(blob){return new Promise((resolve,reject)=>{const u=URL.createObjectURL(blob),image=new Image();image.onload=()=>{URL.revokeObjectURL(u);if(!image.naturalWidth||!image.naturalHeight)reject(Error('Ugyldigt billede.'));else resolve(image)};image.onerror=()=>{URL.revokeObjectURL(u);reject(Error('Billedet kunne ikke afkodes.'))};image.src=u;});}
+function containRect(iw,ih,width,height){const scale=Math.min(width/iw,height/ih),w=iw*scale,h=ih*scale;return{x:(width-w)/2,y:(height-h)/2,width:w,height:h};}
+function drawContained(c,image,x,y,width,height,matte=[255,255,255]){const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height,rect=containRect(iw,ih,width,height);c.save();c.globalCompositeOperation='source-over';c.globalAlpha=1;c.filter='none';c.fillStyle='rgb('+matte.join(',')+')';c.fillRect(x,y,width,height);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(image,x+rect.x,y+rect.y,rect.width,rect.height);c.restore();return rect;}
+function drawCrop(c,image,x,y,width,height,position=.5){const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height,side=Math.min(iw,ih),sx=(iw-side)*position,sy=(ih-side)*position;c.drawImage(image,sx,sy,side,side,x,y,width,height);}
+function detectSourceBackground(image){
+  const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height,sample=document.createElement('canvas'),c=sample.getContext('2d',{willReadFrequently:true,colorSpace:'srgb'}),points=[];let totalWeight=0,transparentWeight=0;const wide=iw>ih*1.05,tall=ih>iw*1.05;
+  function read(sx,sy,sw,sh,dw,dh,weight){sample.width=dw;sample.height=dh;c.imageSmoothingEnabled=false;c.clearRect(0,0,dw,dh);c.drawImage(image,sx,sy,sw,sh,0,0,dw,dh);const pixels=c.getImageData(0,0,dw,dh).data;for(let p=0;p<pixels.length;p+=4){totalWeight+=weight;if(pixels[p+3]<245){transparentWeight+=weight;continue}points.push({rgb:[pixels[p],pixels[p+1],pixels[p+2]],w:weight})}}
+  const rows=[...new Set([0,Math.min(1,ih-1),Math.min(3,ih-1)])],cols=[...new Set([0,Math.min(1,iw-1),Math.min(3,iw-1)])];
+  for(let n=0;n<rows.length;n++){const depth=rows[n],weight=(wide?3:1)*(n===0?2:1);read(0,depth,iw,1,Math.min(768,iw),1,weight);if(ih-1-depth!==depth)read(0,ih-1-depth,iw,1,Math.min(768,iw),1,weight)}
+  for(let n=0;n<cols.length;n++){const depth=cols[n],weight=(tall?3:1)*(n===0?2:1);read(depth,0,1,ih,1,Math.min(768,ih),weight);if(iw-1-depth!==depth)read(iw-1-depth,0,1,ih,1,Math.min(768,ih),weight)}
+  const cw=Math.max(1,Math.min(12,Math.round(iw*.012))),ch=Math.max(1,Math.min(12,Math.round(ih*.012)));for(const x of[0,iw-cw])for(const y of[0,ih-ch])read(x,y,cw,ch,cw,ch,3);
+  if(!points.length||transparentWeight/Math.max(1,totalWeight)>.20)return{rgb:[255,255,255],confidence:0,reason:'transparent'};
+  const bins=new Map();let opaqueWeight=0;for(const point of points){const[r,g,b]=point.rgb,key=((r>>4)<<8)|((g>>4)<<4)|(b>>4);if(!bins.has(key))bins.set(key,{w:0,sum:[0,0,0]});const bin=bins.get(key);bin.w+=point.w;opaqueWeight+=point.w;for(let k=0;k<3;k++)bin.sum[k]+=point.rgb[k]*point.w}
+  const candidates=[...bins.values()].sort((a,b)=>b.w-a.w).slice(0,12);let best=null,bestWeight=-1;for(const bin of candidates){const centre=bin.sum.map(v=>v/bin.w),members=[];let weight=0;for(const point of points){if(Math.max(...point.rgb.map((v,k)=>Math.abs(v-centre[k])))<=18){members.push(point);weight+=point.w}}if(weight>bestWeight){best=members;bestWeight=weight}}
+  const rgb=[0,1,2].map(k=>{const ordered=best.slice().sort((a,b)=>a.rgb[k]-b.rgb[k]);let weight=0;for(const point of ordered){weight+=point.w;if(weight>=bestWeight/2)return point.rgb[k]}return ordered[ordered.length-1].rgb[k]});return{rgb,confidence:bestWeight/Math.max(1,opaqueWeight),reason:bestWeight/Math.max(1,opaqueWeight)>=.70?'solid':'mixed'};
+}
+const assetCache=new Map();
+async function prepareAsset(d,signal){const key=d.photo;if(assetCache.has(key))return assetCache.get(key);const blob=await fetchBlob(key,signal);if(blob.size>25*1024*1024)throw Error('Et billede er over 25 MB.');const image=await decodeBlob(blob);if(image.naturalWidth*image.naturalHeight>64000000)throw Error('Et billede er over 64 megapixel.');const background=detectSourceBackground(image),matte=background.rgb.slice(),scratch=document.createElement('canvas');scratch.width=scratch.height=TILE;drawContained(scratch.getContext('2d',{alpha:false,willReadFrequently:true}),image,0,0,TILE,TILE,matte);const rgba=scratch.getContext('2d',{alpha:false,willReadFrequently:true}).getImageData(0,0,TILE,TILE).data;const asset={blob,image,matte,background,width:image.naturalWidth,height:image.naturalHeight,variants:[{position:.5,fit:'contain',rgba}]};assetCache.set(key,asset);return asset;}
+async function prepareAssets(donations,signal){const out=new Array(donations.length);let next=0,done=0;async function runner(){while(next<donations.length&&!signal.aborted){const i=next++;out[i]=await prepareAsset(donations[i],signal);done++;if(!result)setBuildState('Klargør billeder…',done+' / '+donations.length,8+done/Math.max(1,donations.length)*15,true)}}const workers=Array.from({length:Math.min(6,donations.length)},runner);await Promise.all(workers);return out;}
+async function buildTargetTiles(){if(targetTilesCache)return targetTilesCache;const blob=await fetchBlob(TARGET_SRC),image=await decodeBlob(blob),target=document.createElement('canvas');target.width=target.height=1600;const c=target.getContext('2d',{alpha:false,willReadFrequently:true});c.fillStyle='#343e42';c.fillRect(0,0,1600,1600);c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.filter='blur(100px)';drawCrop(c,image,-120,-120,1840,1840,.5);c.filter='none';const scale=Math.min(1600/image.naturalWidth,1600/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;c.drawImage(image,(1600-w)/2,(1600-h)/2,w,h);c.restore();const all=c.getImageData(0,0,1600,1600).data,tiles=[];for(let row=0;row<40;row++)for(let col=0;col<40;col++){const tile=new Uint8ClampedArray(TILE*TILE*4);for(let y=0;y<TILE;y++){const from=((row*TILE+y)*1600+col*TILE)*4;tile.set(all.subarray(from,from+TILE*4),y*TILE*4)}tiles.push(tile)}targetTilesCache=tiles;return tiles;}
+function photoMosaicWorker() {
   'use strict';
-
-  const GRID = 40;
-  const TOTAL_TILES = GRID * GRID;
-  const POLL_MS = 60000;
-  const MAX_ZOOM = 40;
-  const TARGET_SRC = 'target.jpg';
-
-  const $ = id => document.getElementById(id);
-  const canvas = $('mosaic');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const stage = $('stage');
-  const state = $('state');
-  const tooltip = $('tooltip');
-  const preview = $('preview');
-
-  const money = new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 });
-  const integer = new Intl.NumberFormat('da-DK');
-
-  let publication = null;
-  let assets = [];
-  let targetMap = [];
-  let renderSettings = {
-    preserveOriginals: false,
-    toneStrength: 0.94,
-    photoDetail: 0.55,
-    originalColour: 0.32
-  };
-  let assignments = new Int16Array(TOTAL_TILES).fill(-1);
-  let donorCounts = [];
-  let firstCellByDonor = [];
-  let signature = '';
-  let pollTimer = null;
-  let renderFrame = null;
-  let dpr = 1;
-  let view = { zoom: 1, x: GRID / 2, y: GRID / 2 };
-  let dragging = false;
-  let moved = false;
-  let pointerStart = null;
-  const pointers = new Map();
-  let selectedDonor = -1;
-
-  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function luminance(r, g, b) { return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
-  function fmtDate(value) {
-    const d = new Date(value);
-    if (!Number.isFinite(d.getTime())) return '';
-    return d.toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' });
+  const N = 40, S = 40, BLOCKS = 4, CELLS = N * N, SUB = BLOCKS * BLOCKS;
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const mix = (a, b, t) => a + (b - a) * t;
+  const progress = (stage, value) => self.postMessage({ type: 'progress', stage, value });
+  const linear = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const c = i / 255;
+    linear[i] = c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4);
   }
-
-  function normalizePercent(value, fallback) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return fallback;
-    return clamp(n > 1 ? n / 100 : n, 0, 1);
-  }
-
-  function readRenderSettings(data) {
-    const s = data && data.mosaic_settings ? data.mosaic_settings : {};
-    return {
-      // Public users never get controls for these values. They come from n8n.
-      preserveOriginals: s.preserve_originals === true,
-      toneStrength: normalizePercent(s.tone_strength, 0.94),
-      photoDetail: normalizePercent(s.photo_detail, 0.55),
-      originalColour: normalizePercent(s.original_colour, 0.32)
+  function randomGenerator(seed) {
+    return () => {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
-
-  function loadImage(src) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      if (/^https?:/i.test(src)) image.crossOrigin = 'anonymous';
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('Billedet kunne ikke indlæses.'));
-      image.src = src;
-    });
-  }
-
-  function estimateMatte(image) {
-    try {
-      const size = 40;
-      const c = document.createElement('canvas');
-      c.width = c.height = size;
-      const x = c.getContext('2d', { willReadFrequently: true });
-      x.clearRect(0, 0, size, size);
-      const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight);
-      const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
-      const dx = (size - w) / 2, dy = (size - h) / 2;
-      x.drawImage(image, dx, dy, w, h);
-      const data = x.getImageData(0, 0, size, size).data;
-      const samples = [];
-      for (let yy = 0; yy < size; yy++) {
-        for (let xx = 0; xx < size; xx++) {
-          if (xx > 2 && xx < size - 3 && yy > 2 && yy < size - 3) continue;
-          const p = (yy * size + xx) * 4;
-          if (data[p + 3] < 180) continue;
-          samples.push([data[p], data[p + 1], data[p + 2]]);
-        }
-      }
-      if (!samples.length) return [255, 255, 255];
-      const bins = new Map();
-      for (const rgb of samples) {
-        const key = rgb.map(v => Math.round(v / 32) * 32).join(',');
-        const item = bins.get(key) || { n: 0, r: 0, g: 0, b: 0 };
-        item.n++; item.r += rgb[0]; item.g += rgb[1]; item.b += rgb[2]; bins.set(key, item);
-      }
-      const best = [...bins.values()].sort((a, b) => b.n - a.n)[0];
-      return [Math.round(best.r / best.n), Math.round(best.g / best.n), Math.round(best.b / best.n)];
-    } catch {
-      return [255, 255, 255];
+  function describe(rgba, size) {
+    const plane = new Float32Array(size * size * 3);
+    const blocks = new Float32Array(SUB * 3);
+    const mean = [0, 0, 0];
+    const histogram = new Float32Array(256);
+    let sumSq = 0;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = y * size + x, p = i * 4;
+      const r = linear[rgba[p]], g = linear[rgba[p + 1]], b = linear[rgba[p + 2]];
+      const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b);
+      const m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b);
+      const s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+      const L = .2104542553 * l + .793617785 * m - .0040720468 * s;
+      const a = 1.9779984951 * l - 2.428592205 * m + .4505937099 * s;
+      const bb = .0259040371 * l + .7827717662 * m - .808675766 * s;
+      plane[i * 3] = L; plane[i * 3 + 1] = a; plane[i * 3 + 2] = bb;
+      mean[0] += L; mean[1] += a; mean[2] += bb; sumSq += L * L;
+      histogram[clamp(Math.round(L * 255), 0, 255)]++;
+      const block = (Math.floor(y * BLOCKS / size) * BLOCKS + Math.floor(x * BLOCKS / size)) * 3;
+      blocks[block] += L; blocks[block + 1] += a; blocks[block + 2] += bb;
     }
+    const count = size * size;
+    for (let i = 0; i < 3; i++) mean[i] /= count;
+    for (let i = 0; i < blocks.length; i++) blocks[i] /= count / SUB;
+    for (let i = 0; i < 256; i++) histogram[i] /= count;
+    let spatialVariance = 0;
+    for (let i = 0; i < SUB; i++) spatialVariance += Math.pow(blocks[i * 3] - mean[0], 2);
+    return { plane, blocks, mean, histogram, std: Math.sqrt(Math.max(0, sumSq / count - mean[0] ** 2)), spatialStd: Math.sqrt(spatialVariance / SUB) };
   }
-
-  function makeAnalysis(image, matte) {
-    const size = 32;
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    const x = c.getContext('2d', { willReadFrequently: true });
-    x.fillStyle = `rgb(${matte[0]},${matte[1]},${matte[2]})`;
-    x.fillRect(0, 0, size, size);
-    const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight);
-    const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
-    x.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
-    try {
-      const data = x.getImageData(0, 0, size, size).data;
-      let r = 0, g = 0, b = 0, n = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
-      }
-      r /= n; g /= n; b /= n;
-      return { r, g, b, lum: luminance(r, g, b) };
-    } catch {
-      const [r, g, b] = matte;
-      return { r, g, b, lum: luminance(r, g, b) };
-    }
-  }
-
-  async function prepareAssets(donations) {
-    return Promise.all(donations.map(async (d, index) => {
-      try {
-        const image = await loadImage(String(d.photo || ''));
-        const matte = estimateMatte(image);
-        return { index, image, matte, analysis: makeAnalysis(image, matte), ok: true };
-      } catch {
-        const matte = [245, 245, 245];
-        return { index, image: null, matte, analysis: { r:245,g:245,b:245,lum:245 }, ok: false };
-      }
-    }));
-  }
-
-  async function targetCells() {
-    const image = await loadImage(TARGET_SRC);
-    const c = document.createElement('canvas');
-    c.width = c.height = GRID;
-    const x = c.getContext('2d', { willReadFrequently: true });
-    const matte = estimateMatte(image);
-    x.fillStyle = `rgb(${matte[0]},${matte[1]},${matte[2]})`;
-    x.fillRect(0, 0, GRID, GRID);
-    const scale = Math.min(GRID / image.naturalWidth, GRID / image.naturalHeight);
-    const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
-    x.drawImage(image, (GRID - w) / 2, (GRID - h) / 2, w, h);
-    const data = x.getImageData(0, 0, GRID, GRID).data;
-    const cells = [];
-    for (let i = 0; i < TOTAL_TILES; i++) {
-      const p = i * 4;
-      const r = data[p], g = data[p + 1], b = data[p + 2];
-      cells.push({ i, r, g, b, lum: luminance(r, g, b) });
-    }
-    return cells;
-  }
-
-  function largestRemainder(donations) {
-    let weights = donations.map(d => Math.max(0, Number(d.amount) || 0));
-    let sum = weights.reduce((a, b) => a + b, 0);
-    if (sum <= 0) { weights = donations.map(() => 1); sum = donations.length || 1; }
-    const quotas = weights.map(w => w / sum * TOTAL_TILES);
-    const counts = quotas.map(Math.floor);
-    let remaining = TOTAL_TILES - counts.reduce((a, b) => a + b, 0);
-    const order = quotas.map((q, i) => ({ i, rest: q - Math.floor(q) })).sort((a, b) => b.rest - a.rest || a.i - b.i);
-    for (let n = 0; n < remaining; n++) counts[order[n % order.length].i]++;
+  // Pure Hamilton allocation: no minimum-one distortion of paid donor shares.
+  function hamilton(weights, total = CELLS) {
+    if (!weights.length || weights.some(w => !Number.isFinite(w) || w < 0)) throw Error('Invalid donor weights');
+    const sum = weights.reduce((a, b) => a + b, 0);
+    if (!(sum > 0) || !Number.isFinite(sum)) throw Error('Donation total must be positive and finite');
+    const exact = weights.map(w => w / sum * total);
+    const counts = exact.map(Math.floor);
+    const order = exact.map((q, i) => ({ i, r: q - counts[i] })).sort((a, b) => b.r - a.r || a.i - b.i);
+    const left = total - counts.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < left; i++) counts[order[i].i]++;
     return counts;
   }
-
-  function buildAssignments(target) {
-    donorCounts = largestRemainder(publication.donations);
-    firstCellByDonor = new Array(publication.donations.length).fill(-1);
-    const slots = [];
-    for (let donor = 0; donor < donorCounts.length; donor++) {
-      for (let n = 0; n < donorCounts[donor]; n++) slots.push(donor);
+  function score(source, target) {
+    // Match both colour AND the internal arrangement of light and dark areas.
+    // The target pixels never enter the output; this is a descriptor distance.
+    const dL = source.mean[0] - target.mean[0];
+    const da = source.mean[1] - target.mean[1], db = source.mean[2] - target.mean[2];
+    let structural = 0, chromaticStructure = 0;
+    const gain = clamp(target.spatialStd / Math.max(.035, source.spatialStd), .55, 1.3);
+    for (let k = 0; k < SUB; k++) {
+      const p = k * 3;
+      const delta = (source.blocks[p] - source.mean[0]) * gain - (target.blocks[p] - target.mean[0]);
+      structural += delta * delta;
+      const ac = (source.blocks[p + 1] - source.mean[1]) * .75 - (target.blocks[p + 1] - target.mean[1]);
+      const bc = (source.blocks[p + 2] - source.mean[2]) * .75 - (target.blocks[p + 2] - target.mean[2]);
+      chromaticStructure += ac * ac + bc * bc;
     }
-    slots.sort((a, b) => assets[a].analysis.lum - assets[b].analysis.lum || a - b);
-    const sortedCells = target.slice().sort((a, b) => a.lum - b.lum || a.i - b.i);
-    assignments = new Int16Array(TOTAL_TILES).fill(-1);
-    for (let n = 0; n < TOTAL_TILES; n++) {
-      const donor = slots[n];
-      const cell = sortedCells[n].i;
-      assignments[cell] = donor;
-      if (firstCellByDonor[donor] < 0) firstCellByDonor[donor] = cell;
+    const edgeWeight = 1 + Math.min(2, target.spatialStd * 12);
+    return 1.7 * dL * dL + 4 * (da * da + db * db)
+      + 8 * edgeWeight * structural / SUB + 2 * chromaticStructure / SUB
+      + .08 * Math.pow(Math.max(0, source.std - .23), 2);
+  }
+  // Capacity-constrained epsilon auction. A donor owns exactly quota slots.
+  // Heap per donor avoids expanding the cost matrix into 1600 identical columns.
+  // Approximate cost optimisation, exact capacity conservation.
+  function auction(cost, D, quotas) {
+    const owners = new Int32Array(CELLS).fill(-1);
+    const prices = new Float64Array(CELLS);
+    const slotDonor = new Int32Array(CELLS);
+    const heaps = [];
+    let slot = 0;
+    for (let d = 0; d < D; d++) {
+      const heap = [];
+      for (let j = 0; j < quotas[d]; j++) { heap.push(slot); slotDonor[slot++] = d; }
+      heaps.push(heap);
     }
-  }
-
-  function adjustedMatte(asset, target) {
-    if (renderSettings.preserveOriginals || !target) return asset.matte;
-
-    const strength = renderSettings.toneStrength;
-    const originalColour = renderSettings.originalColour;
-    const [r, g, b] = asset.matte;
-    const sourceLum = Math.max(18, luminance(r, g, b));
-    const targetLum = clamp(target.lum + 18 * ((255 - target.lum) / 255) ** 2, 42, 246);
-    const desiredLum = lerp(sourceLum, targetLum, strength);
-
-    const sourceChroma = [r - sourceLum, g - sourceLum, b - sourceLum];
-    const targetChroma = [target.r - target.lum, target.g - target.lum, target.b - target.lum];
-    const targetColourAmount = strength * (1 - originalColour);
-
-    return [0, 1, 2].map(i => Math.round(clamp(
-      desiredLum +
-      sourceChroma[i] * (1 - targetColourAmount * 0.72) +
-      targetChroma[i] * targetColourAmount * 0.72,
-      0, 255
-    )));
-  }
-
-  function tonePlan(asset, target) {
-    if (renderSettings.preserveOriginals || !target || renderSettings.toneStrength <= 0) {
-      return { filter: 'none', tintAlpha: 0 };
-    }
-
-    const strength = renderSettings.toneStrength;
-    const detail = renderSettings.photoDetail;
-    const originalColour = renderSettings.originalColour;
-    const sourceLum = Math.max(18, asset.analysis.lum);
-
-    // Never crush dark target areas to black. We match the target exposure while
-    // retaining enough tonal room to recognise the donor image at close range.
-    const targetLum = clamp(target.lum + 18 * ((255 - target.lum) / 255) ** 2, 42, 246);
-    const desiredLum = lerp(sourceLum, targetLum, strength);
-    const brightness = clamp(desiredLum / sourceLum, 0.22, 2.8);
-
-    // 55% detail gives a little extra local contrast, not a hard posterisation.
-    const contrast = lerp(1, 0.90 + detail * 0.55, strength);
-
-    // originalColour = 32% means most of the colour family follows the target,
-    // while enough of the donor's own colour remains for the small image to live.
-    const saturation = lerp(1, 0.28 + originalColour * 1.45, strength);
-    const tintAlpha = clamp(strength * (1 - originalColour) * 0.56, 0, 0.58);
-
-    return {
-      filter: `brightness(${brightness.toFixed(3)}) contrast(${contrast.toFixed(3)}) saturate(${saturation.toFixed(3)})`,
-      tintAlpha
-    };
-  }
-
-  function drawContained(context, asset, target, x, y, w, h) {
-    const matte = adjustedMatte(asset, target);
-    context.save();
-    context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 1;
-    context.filter = 'none';
-    context.fillStyle = `rgb(${matte[0]},${matte[1]},${matte[2]})`;
-    context.fillRect(x, y, w, h);
-
-    if (asset.image) {
-      const iw = asset.image.naturalWidth, ih = asset.image.naturalHeight;
-      const scale = Math.min(w / iw, h / ih);
-      const dw = iw * scale, dh = ih * scale;
-      const plan = tonePlan(asset, target);
-      context.filter = plan.filter;
-      context.drawImage(asset.image, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-      context.filter = 'none';
-
-      // This is NOT the target image painted over the donor photo. It is only
-      // a flat per-cell chroma adjustment. Luminosity comes from the donor image.
-      if (plan.tintAlpha > 0 && target) {
-        context.globalCompositeOperation = 'color';
-        context.globalAlpha = plan.tintAlpha;
-        context.fillStyle = `rgb(${target.r},${target.g},${target.b})`;
-        context.fillRect(x, y, w, h);
+    if (slot !== CELLS) throw Error('Quota conservation failed');
+    let iterations = 0;
+    function sink(heap) {
+      let i = 0;
+      for (;;) {
+        const left = 2 * i + 1;
+        if (left >= heap.length) return;
+        const right = left + 1;
+        const child = right < heap.length && prices[heap[right]] < prices[heap[left]] ? right : left;
+        if (prices[heap[i]] <= prices[heap[child]]) return;
+        [heap[i], heap[child]] = [heap[child], heap[i]];
+        i = child;
       }
     }
-    context.restore();
-  }
-
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    dpr = clamp(window.devicePixelRatio || 1, 1, 2.5);
-    const w = Math.max(1, Math.round(rect.width * dpr));
-    const h = Math.max(1, Math.round(rect.height * dpr));
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-  }
-
-  function viewMetrics() {
-    resizeCanvas();
-    const span = GRID / view.zoom;
-    view.x = clamp(view.x, span / 2, GRID - span / 2);
-    view.y = clamp(view.y, span / 2, GRID - span / 2);
-    return { span, left: view.x - span / 2, top: view.y - span / 2, pxPerWorld: canvas.width / span };
-  }
-
-  function render() {
-    renderFrame = null;
-    const m = viewMetrics();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#ececea'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (!publication || !assets.length) return;
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    const c0 = clamp(Math.floor(m.left), 0, GRID - 1), c1 = clamp(Math.ceil(m.left + m.span), 0, GRID);
-    const r0 = clamp(Math.floor(m.top), 0, GRID - 1), r1 = clamp(Math.ceil(m.top + m.span), 0, GRID);
-    for (let row = r0; row < r1; row++) {
-      for (let col = c0; col < c1; col++) {
-        const cell = row * GRID + col;
-        const donor = assignments[cell];
-        if (donor < 0) continue;
-        const x0 = Math.floor((col - m.left) * m.pxPerWorld), y0 = Math.floor((row - m.top) * m.pxPerWorld);
-        const x1 = Math.ceil((col + 1 - m.left) * m.pxPerWorld), y1 = Math.ceil((row + 1 - m.top) * m.pxPerWorld);
-        drawContained(ctx, assets[donor], targetMap[cell], x0, y0, x1 - x0, y1 - y0);
+    for (const epsilon of [.015, .003, .0006]) {
+      owners.fill(-1);
+      const queue = new Int32Array(CELLS + 1);
+      let head = 0, tail = 0, length = 0, stageIterations = 0;
+      for (let i = 0; i < CELLS; i++) { queue[tail] = i; tail = (tail + 1) % queue.length; length++; }
+      while (length) {
+        const cell = queue[head]; head = (head + 1) % queue.length; length--;
+        let best = Infinity, second = Infinity, winningDonor = -1;
+        const offset = cell * D;
+        for (let d = 0; d < D; d++) {
+          const heap = heaps[d]; if (!heap.length) continue;
+          const c = cost[offset + d], value = c + prices[heap[0]];
+          if (value < best) { second = best; best = value; winningDonor = d; }
+          else if (value < second) second = value;
+          if (heap.length > 1) {
+            const nextSlot = heap.length > 2 && prices[heap[2]] < prices[heap[1]] ? heap[2] : heap[1];
+            second = Math.min(second, c + prices[nextSlot]);
+          }
+        }
+        if (winningDonor < 0) throw Error('No assignment candidate');
+        const heap = heaps[winningDonor], winningSlot = heap[0], displaced = owners[winningSlot];
+        owners[winningSlot] = cell;
+        prices[winningSlot] += (Number.isFinite(second) ? Math.max(0, second - best) : 0) + epsilon;
+        sink(heap);
+        if (displaced >= 0) { queue[tail] = displaced; tail = (tail + 1) % queue.length; length++; }
+        iterations++; stageIterations++;
+        if (stageIterations > 600000) throw Error('Matching iteration limit exceeded. Use fewer distinct photos.');
+        if (stageIterations % 10000 === 0) progress('matcher', 50 + Math.min(15, iterations / 10000));
       }
     }
-    $('zoomValue').textContent = integer.format(Math.round(view.zoom * 100)) + '%';
-    $('zoomRange').value = Math.round(Math.log(view.zoom) / Math.log(MAX_ZOOM) * 100);
-    $('zoomOut').disabled = view.zoom <= 1.001; $('zoomIn').disabled = view.zoom >= MAX_ZOOM - .001;
+    const result = new Int32Array(CELLS);
+    for (let i = 0; i < CELLS; i++) result[owners[i]] = slotDonor[i];
+    return { assignments: result, iterations };
   }
-
-  function requestRender() { if (!renderFrame) renderFrame = requestAnimationFrame(render); }
-  function setZoom(next, anchorX = null, anchorY = null) {
-    if (!publication) return;
-    const old = viewMetrics();
-    const rect = canvas.getBoundingClientRect();
-    const ax = anchorX == null ? rect.width / 2 : anchorX;
-    const ay = anchorY == null ? rect.height / 2 : anchorY;
-    const wx = old.left + ax / rect.width * old.span;
-    const wy = old.top + ay / rect.height * old.span;
-    view.zoom = clamp(next, 1, MAX_ZOOM);
-    const span = GRID / view.zoom;
-    view.x = wx + (.5 - ax / rect.width) * span;
-    view.y = wy + (.5 - ay / rect.height) * span;
-    requestRender();
-  }
-  function fit() { view = { zoom: 1, x: GRID / 2, y: GRID / 2 }; requestRender(); }
-
-  function hit(clientX, clientY) {
-    if (!publication) return null;
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left, y = clientY - rect.top;
-    if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) return null;
-    const m = viewMetrics();
-    const col = clamp(Math.floor(m.left + x / rect.width * m.span), 0, GRID - 1);
-    const row = clamp(Math.floor(m.top + y / rect.height * m.span), 0, GRID - 1);
-    const cell = row * GRID + col;
-    return { cell, donor: assignments[cell], rect };
-  }
-
-  function showTooltip(e) {
-    if (pointers.size) return;
-    const h = hit(e.clientX, e.clientY);
-    if (!h || h.donor < 0) { tooltip.style.display = 'none'; return; }
-    const d = publication.donations[h.donor];
-    tooltip.textContent = `${d.name || 'Anonym'} · ${money.format(Number(d.amount) || 0)}`;
-    tooltip.style.display = 'block';
-    tooltip.style.left = clamp(e.clientX - h.rect.left + 12, 7, Math.max(7, h.rect.width - 270)) + 'px';
-    tooltip.style.top = clamp(e.clientY - h.rect.top + 12, 7, Math.max(7, h.rect.height - 55)) + 'px';
-  }
-
-  function openDonor(donorIndex) {
-    if (!publication || donorIndex < 0) return;
-    selectedDonor = donorIndex;
-    const d = publication.donations[donorIndex];
-    const asset = assets[donorIndex];
-    $('previewName').textContent = d.name || 'Anonym';
-    $('previewMeta').textContent = `${money.format(Number(d.amount) || 0)} · ${integer.format(donorCounts[donorIndex] || 0)} felter`;
-    $('previewWrap').style.background = `rgb(${asset.matte[0]},${asset.matte[1]},${asset.matte[2]})`;
-    $('previewImage').src = String(d.photo || '');
-    $('previewImage').alt = `Billede fra ${d.name || 'Anonym'}`;
-    if (typeof preview.showModal === 'function') preview.showModal(); else preview.setAttribute('open', '');
-  }
-
-  function focusDonor(donorIndex) {
-    const cell = firstCellByDonor[donorIndex];
-    if (cell == null || cell < 0) return;
-    const col = cell % GRID, row = Math.floor(cell / GRID);
-    view.zoom = 10; view.x = col + .5; view.y = row + .5;
-    requestRender();
-    preview.close?.();
-    setTimeout(() => canvas.focus({ preventScroll: false }), 30);
-  }
-
-  function renderDonorList() {
-    if (!publication) return;
-    const query = $('search').value.trim().toLocaleLowerCase('da-DK');
-    const sort = $('sort').value;
-    let rows = publication.donations.map((d, i) => ({ d, i })).filter(x => !query || String(x.d.name || 'Anonym').toLocaleLowerCase('da-DK').includes(query));
-    rows.sort((a, b) => sort === 'name' ? String(a.d.name || '').localeCompare(String(b.d.name || ''), 'da') : (Number(b.d.amount) || 0) - (Number(a.d.amount) || 0) || String(a.d.name || '').localeCompare(String(b.d.name || ''), 'da'));
-    $('listCount').textContent = `${rows.length} af ${publication.donations.length}`;
-    const list = $('donorList'); list.replaceChildren();
-    if (!rows.length) { const p = document.createElement('div'); p.className = 'empty-list'; p.textContent = 'Ingen bidragydere matcher søgningen.'; list.appendChild(p); return; }
-    const frag = document.createDocumentFragment();
-    for (const { d, i } of rows) {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'donor';
-      const thumb = document.createElement('span'); thumb.className = 'donor-thumb'; thumb.style.background = `rgb(${assets[i].matte.join(',')})`;
-      const img = document.createElement('img'); img.src = String(d.photo || ''); img.alt = ''; thumb.appendChild(img);
-      const copy = document.createElement('span'); copy.className = 'donor-copy';
-      const strong = document.createElement('strong'); strong.textContent = d.name || 'Anonym';
-      const small = document.createElement('small'); small.textContent = money.format(Number(d.amount) || 0);
-      copy.append(strong, small);
-      const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '›';
-      button.append(thumb, copy, arrow); button.addEventListener('click', () => openDonor(i)); frag.appendChild(button);
+  function spread(assignments, cost, D, seed) {
+    const random = randomGenerator(seed);
+    const neighbours = Array.from({ length: CELLS }, (_, i) => {
+      const x = i % N, y = Math.floor(i / N), result = [];
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+        const dist = Math.abs(dx) + Math.abs(dy);
+        if (!dist || dist > 2 || x + dx < 0 || x + dx >= N || y + dy < 0 || y + dy >= N) continue;
+        result.push([(y + dy) * N + x + dx, dist === 1 ? .030 : .010]);
+      }
+      return result;
+    });
+    function penalty(cell, donor, except) {
+      let p = 0;
+      for (const [other, weight] of neighbours[cell]) if (other !== except && assignments[other] === donor) p += weight;
+      return p;
     }
-    list.appendChild(frag);
+    let swaps = 0;
+    for (let pass = 0; pass < 5; pass++) for (let i = 0; i < CELLS; i++) {
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const j = Math.floor(random() * CELLS), a = assignments[i], b = assignments[j];
+        if (a === b || i === j) continue;
+        const change = cost[i * D + b] + cost[j * D + a] - cost[i * D + a] - cost[j * D + b]
+          + penalty(i, b, j) + penalty(j, a, i) - penalty(i, a, j) - penalty(j, b, i);
+        if (change < -1e-7) { assignments[i] = b; assignments[j] = a; swaps++; }
+      }
+    }
+    return swaps;
   }
-
-  async function loadPublication(force = false) {
-    clearTimeout(pollTimer);
+  function makeToneCurve(source, desiredMean, detail, targetSpatialStd) {
+    // ONE histogram-calibrated, monotonic curve for the entire source photo.
+    // Match a bounded photo contrast as well as mean lightness. Otherwise a
+    // black/white source can keep screaming white highlights in a dark cell.
+    const goalStd = Math.min(.18, .030 + detail * .100 + Math.min(.035, targetSpatialStd * .25));
+    const sourceMean = clamp(source.mean[0], .02, .98);
+    let slope = clamp(goalStd / Math.max(.02, source.std)
+      * sourceMean * (1 - sourceMean) / Math.max(.03, desiredMean * (1 - desiredMean)), .16, 1.8);
+    const logit = new Float64Array(256);
+    for (let i = 0; i < 256; i++) {
+      const x = clamp(i / 255, .001, .999); logit[i] = Math.log(x / (1 - x));
+    }
+    let lut = new Float32Array(256);
+    for (let round = 0; round < 3; round++) {
+      let lo = -18, hi = 18;
+      for (let iteration = 0; iteration < 18; iteration++) {
+        const b = (lo + hi) / 2; let average = 0;
+        for (let i = 0; i < 256; i++) if (source.histogram[i]) average += source.histogram[i] / (1 + Math.exp(-(slope * logit[i] + b)));
+        if (average < desiredMean) lo = b; else hi = b;
+      }
+      const bias = (lo + hi) / 2; let variance = 0;
+      for (let i = 0; i < 256; i++) {
+        lut[i] = 1 / (1 + Math.exp(-(slope * logit[i] + bias)));
+        variance += source.histogram[i] * (lut[i] - desiredMean) ** 2;
+      }
+      if (round < 2) slope = clamp(slope * goalStd / Math.max(.007, Math.sqrt(variance)), .12, 2.0);
+    }
+    return lut;
+  }
+  function rgbFromLab(L, a, b) {
+    const l = (L + .3963377774 * a + .2158037573 * b) ** 3;
+    const m = (L - .1055613458 * a - .0638541728 * b) ** 3;
+    const s = (L - .0894841775 * a - 1.291485548 * b) ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s,
+      -.0041960863 * l - .7034186147 * m + 1.707614701 * s];
+  }
+  function gammaByte(value) {
+    const v = clamp(value, 0, 1);
+    return Math.round(255 * (v <= .0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - .055));
+  }
+  function render(targets, donors, assignments, variantChoice, params) {
+    const width = N * S, raw = new Uint8ClampedArray(width * width * 4);
+    const output = new Uint8ClampedArray(raw.length), choices = new Uint8Array(CELLS);
+    const D = donors.length; let compressedPixels = 0;
+    const toneProfiles = new Float32Array(CELLS * 263);
+    for (let cell = 0; cell < CELLS; cell++) {
+      const d = assignments[cell], v = variantChoice[cell * D + d]; choices[cell] = v;
+      const variant = donors[d].variants[v], source = variant.desc, target = targets[cell];
+      // Mild shadow lift, rather than black fill. The tonal ordering of the source remains intact.
+      const targetL = clamp(target.mean[0] + .035 * (1 - target.mean[0]) ** 2, .17, .93);
+      const desired = mix(source.mean[0], targetL, params.strength);
+      const curve = makeToneCurve(source, desired, params.detail, target.spatialStd);
+      const colourAmount = params.strength * (1 - params.originalColour);
+      const desiredA = mix(source.mean[1], target.mean[1], colourAmount);
+      const desiredB = mix(source.mean[2], target.mean[2], colourAmount);
+      const chromaGain = mix(1, .72 + params.originalColour * .28, params.strength);
+      const profileOffset = cell * 263;
+      toneProfiles.set(curve, profileOffset);
+      toneProfiles.set([source.mean[1], source.mean[2], desiredA, desiredB, chromaGain,
+        Math.min(1, params.strength * 4), params.strength], profileOffset + 256);
+      const baseX = cell % N * S, baseY = Math.floor(cell / N) * S;
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const local = y * S + x, src = local * 4, dst = ((baseY + y) * width + baseX + x) * 4;
+        raw[dst] = variant.rgba[src]; raw[dst + 1] = variant.rgba[src + 1]; raw[dst + 2] = variant.rgba[src + 2]; raw[dst + 3] = 255;
+        // At zero strength the exact original pixels are used, not a round-trip approximation.
+        if (params.strength <= 0) { output.set(raw.subarray(dst, dst + 4), dst); continue; }
+        const t = source.plane[local * 3] * 255, ti = clamp(Math.floor(t), 0, 255), tj = Math.min(255, ti + 1);
+        const L = mix(source.plane[local * 3], mix(curve[ti], curve[tj], t - ti), Math.min(1, params.strength * 4));
+        const a = desiredA + chromaGain * (source.plane[local * 3 + 1] - source.mean[1]);
+        const b = desiredB + chromaGain * (source.plane[local * 3 + 2] - source.mean[2]);
+        let rgb = rgbFromLab(L, a, b);
+        if (rgb.some(c => c < 0 || c > 1)) {
+          // Compress chroma toward the same lightness instead of clipping to flat black/white.
+          compressedPixels++; let lower = 0, upper = 1;
+          for (let k = 0; k < 7; k++) {
+            const mid = (lower + upper) / 2, candidate = rgbFromLab(L, a * mid, b * mid);
+            if (candidate.some(c => c < 0 || c > 1)) upper = mid; else lower = mid;
+          }
+          rgb = rgbFromLab(L, a * lower, b * lower);
+        }
+        output[dst] = gammaByte(rgb[0]); output[dst + 1] = gammaByte(rgb[1]); output[dst + 2] = gammaByte(rgb[2]); output[dst + 3] = 255;
+      }
+      if (cell % 160 === 0) progress('toner', 76 + 22 * cell / CELLS);
+    }
+    return { output, raw, choices, compressedPixels, toneProfiles };
+  }
+  self.onmessage = event => {
     try {
-      $('status').textContent = 'Henter seneste version…';
-      const response = await fetch(`public-mosaic.json?v=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data.donations)) throw new Error('Ugyldig datafil.');
-      const clean = data.donations.filter(d => d && d.photo && Number(d.amount) >= 0).map(d => ({ id: String(d.id ?? ''), name: String(d.name || 'Anonym'), amount: Number(d.amount) || 0, photo: String(d.photo), created_at: String(d.created_at || '') }));
-      const settingsSignature = JSON.stringify(data.mosaic_settings || {});
-      const nextSignature = `${data.updated_at || ''}|${settingsSignature}|${clean.length}|${clean.map(d => `${d.id}:${d.amount}:${d.name}`).join('|')}`;
-      if (!force && signature === nextSignature) { $('status').textContent = 'Opdateret'; schedulePoll(); return; }
-      publication = { ...data, donations: clean };
-      renderSettings = readRenderSettings(data);
-      signature = nextSignature;
-      $('updated').textContent = data.updated_at ? `Senest opdateret ${fmtDate(data.updated_at)}` : 'Senest opdateret';
-      $('total').textContent = money.format(clean.reduce((s, d) => s + d.amount, 0));
-      $('count').textContent = integer.format(clean.length);
-      if (!clean.length) {
-        assets = []; assignments = new Int16Array(TOTAL_TILES).fill(-1); state.hidden = false;
-        state.innerHTML = '<div><strong>Kunstværket venter på de første bidrag.</strong><span>Kom tilbage snart.</span></div>';
-        renderDonorList(); requestRender(); schedulePoll(); return;
+      const started = performance.now(), data = event.data;
+      const fullCounts = hamilton(data.donors.map(d => d.weight));
+      const activeIndices = fullCounts.map((n, i) => n ? i : -1).filter(i => i >= 0);
+      const donors = activeIndices.map(i => data.donors[i]);
+      const quotas = activeIndices.map(i => fullCounts[i]);
+      const D = donors.length;
+      progress('analyserer', 2);
+      const targets = data.targetTiles.map(tile => describe(tile, S));
+      for (let d = 0; d < D; d++) {
+        for (const variant of donors[d].variants) variant.desc = describe(variant.rgba, S);
+        if (d % 30 === 0) progress('analyserer', 4 + d / D * 14);
       }
-      state.hidden = false; state.innerHTML = '<div><strong>Bygger kunstværket…</strong><span>Indlæser billederne.</span></div>';
-      const [prepared, target] = await Promise.all([prepareAssets(clean), targetCells()]);
-      if (signature !== nextSignature) return;
-      assets = prepared; targetMap = target; buildAssignments(targetMap); renderDonorList(); fit();
-      state.hidden = true; $('status').textContent = 'Opdateres automatisk';
-      schedulePoll(); reportHeight();
-    } catch (error) {
-      console.error(error);
-      state.hidden = false; state.innerHTML = '<div><strong>Kunstværket kunne ikke indlæses.</strong><span>Prøv igen om et øjeblik.</span></div>';
-      $('status').textContent = 'Forbindelsesfejl';
-      schedulePoll(15000);
-    }
-  }
-
-  function schedulePoll(delay = POLL_MS) { clearTimeout(pollTimer); if (!document.hidden) pollTimer = setTimeout(() => loadPublication(false), delay); }
-
-  $('zoomIn').addEventListener('click', () => setZoom(view.zoom * 1.5));
-  $('zoomOut').addEventListener('click', () => setZoom(view.zoom / 1.5));
-  $('fit').addEventListener('click', fit);
-  $('zoomRange').addEventListener('input', e => setZoom(MAX_ZOOM ** (Number(e.target.value) / 100)));
-  $('fullscreen').addEventListener('click', async () => {
-    try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('viewer').requestFullscreen(); } catch { $('hint').textContent = 'Fuld skærm er ikke tilladt i denne visning. Zoom fungerer stadig.'; }
-  });
-  document.addEventListener('fullscreenchange', () => { $('fullscreen').textContent = document.fullscreenElement ? 'Luk fuld skærm' : 'Fuld skærm'; requestRender(); });
-  $('search').addEventListener('input', renderDonorList); $('sort').addEventListener('change', renderDonorList);
-  $('closePreview').addEventListener('click', () => preview.close?.());
-  $('findTile').addEventListener('click', () => focusDonor(selectedDonor));
-  preview.addEventListener('click', e => { if (e.target === preview) preview.close?.(); });
-
-  canvas.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    canvas.focus({ preventScroll: true }); tooltip.style.display = 'none';
-    if (!pointers.size) { moved = false; pointerStart = { x: e.clientX, y: e.clientY }; }
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    try { canvas.setPointerCapture(e.pointerId); } catch {}
-  });
-  canvas.addEventListener('pointermove', e => {
-    if (!pointers.has(e.pointerId)) { showTooltip(e); return; }
-    const rect = canvas.getBoundingClientRect();
-    const before = pointers.size === 2 ? [...pointers.values()] : null;
-    const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (before && pointers.size === 2) {
-      const after = [...pointers.values()];
-      const dist0 = Math.max(1, Math.hypot(before[0].x - before[1].x, before[0].y - before[1].y));
-      const dist1 = Math.max(1, Math.hypot(after[0].x - after[1].x, after[0].y - after[1].y));
-      const cx = (after[0].x + after[1].x) / 2 - rect.left, cy = (after[0].y + after[1].y) / 2 - rect.top;
-      setZoom(view.zoom * dist1 / dist0, cx, cy); moved = true;
-    } else {
-      if (pointerStart && Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y) > 4) moved = true;
-      if (moved) {
-        const m = viewMetrics(); view.x -= (e.clientX - prev.x) / rect.width * m.span; view.y -= (e.clientY - prev.y) / rect.height * m.span;
-        canvas.classList.add('dragging'); requestRender();
+      const costs = new Float32Array(CELLS * D), variants = new Uint8Array(CELLS * D);
+      for (let c = 0; c < CELLS; c++) {
+        for (let d = 0; d < D; d++) {
+          let best = Infinity, bestV = 0;
+          for (let v = 0; v < donors[d].variants.length; v++) {
+            const value = score(donors[d].variants[v].desc, targets[c]) + (v ? .00035 : 0);
+            if (value < best) { best = value; bestV = v; }
+          }
+          costs[c * D + d] = best; variants[c * D + d] = bestV;
+        }
+        if (c % 160 === 0) progress('sammenligner', 20 + c / CELLS * 28);
       }
-    }
-  });
-  function endPointer(e, cancelled) {
-    if (!pointers.has(e.pointerId)) return;
-    pointers.delete(e.pointerId); try { canvas.releasePointerCapture(e.pointerId); } catch {}
-    if (!pointers.size) {
-      canvas.classList.remove('dragging');
-      if (!cancelled && !moved) { const h = hit(e.clientX, e.clientY); if (h && h.donor >= 0) openDonor(h.donor); }
-      moved = false; pointerStart = null;
-    }
+      progress('matcher', 50);
+      const allocation = auction(costs, D, quotas);
+      progress('spreder', 68);
+      const swaps = spread(allocation.assignments, costs, D, data.seed || 20260907);
+      const check = Array(D).fill(0);
+      for (const d of allocation.assignments) check[d]++;
+      if (check.some((n, i) => n !== quotas[i])) throw Error('Donor quota changed during optimisation');
+      const result = render(targets, donors, allocation.assignments, variants, data.params);
+      const assignmentIds = Array.from(allocation.assignments, d => activeIndices[d]);
+      self.postMessage({ type: 'complete', pixels: result.output, raw: result.raw, assignments: assignmentIds,
+        choices: result.choices, toneProfiles: result.toneProfiles, counts: fullCounts, diagnostics: {
+          iterations: allocation.iterations, swaps, seconds: (performance.now() - started) / 1000,
+          targetOverlayPixels: 0, originalsProtected: !!data.params.preserveOriginals, effectiveToneStrength: data.params.strength, totalCells: CELLS, gamutCompressedFraction: result.compressedPixels / (N * S) ** 2,
+          sourceCount: donors.length, zeroTileDonors: fullCounts.filter(n => !n).length
+        } }, [result.output.buffer, result.raw.buffer, result.choices.buffer, result.toneProfiles.buffer]);
+    } catch (error) { self.postMessage({ type: 'error', message: error.message, stack: error.stack }); }
+  };
+}
+function photoDetailWorker() {
+  'use strict';
+  const STRIDE = 263, RAW_BUDGET = 32 * 1024 * 1024;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  let sources = [], profiles = null, assignments = null, revision = 0, viewToken = 0;
+  let viewTasks = [], inspectTasks = [], running = false, cacheBytes = 0;
+  const rawCache = new Map(), linear = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const c = i / 255; linear[i] = c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
   }
-  canvas.addEventListener('pointerup', e => endPointer(e, false));
-  canvas.addEventListener('pointercancel', e => endPointer(e, true));
-  canvas.addEventListener('pointerleave', () => { if (!pointers.size) tooltip.style.display = 'none'; });
-  canvas.addEventListener('wheel', e => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    e.preventDefault(); const rect = canvas.getBoundingClientRect();
-    setZoom(view.zoom * Math.exp(-clamp(e.deltaY, -400, 400) * .002), e.clientX - rect.left, e.clientY - rect.top);
-  }, { passive: false });
-  canvas.addEventListener('keydown', e => {
-    if (e.key === '+' || e.key === '=') { e.preventDefault(); setZoom(view.zoom * 1.5); }
-    else if (e.key === '-' || e.key === '_') { e.preventDefault(); setZoom(view.zoom / 1.5); }
-    else if (e.key === 'Home') { e.preventDefault(); fit(); }
-  });
-
-  document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(pollTimer); else loadPublication(false); });
-  window.addEventListener('resize', () => { requestRender(); reportHeight(); });
-  if ('ResizeObserver' in window) new ResizeObserver(() => { requestRender(); reportHeight(); }).observe($('app'));
-
-  function reportHeight() {
-    if (window.parent === window) return;
-    let origin = '*';
-    try { if (document.referrer) origin = new URL(document.referrer).origin; } catch {}
-    window.parent.postMessage({ type: 'charity-mosaic-height', height: Math.ceil(document.documentElement.scrollHeight) }, origin);
+  function rgbFromLab(L, a, b) {
+    const l = (L + .3963377774 * a + .2158037573 * b) ** 3;
+    const m = (L - .1055613458 * a - .0638541728 * b) ** 3;
+    const s = (L - .0894841775 * a - 1.291485548 * b) ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s,
+      -.0041960863 * l - .7034186147 * m + 1.707614701 * s];
   }
-
-  loadPublication(true);
+  function gammaByte(value) {
+    const v = clamp(value, 0, 1);
+    return Math.round(255 * (v <= .0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - .055));
+  }
+  async function sourcePixels(donor, size) {
+    const key = donor + ':' + size;
+    if (rawCache.has(key)) {
+      const value = rawCache.get(key); rawCache.delete(key); rawCache.set(key, value); return value;
+    }
+    const src = sources[donor];
+    if (!src?.blob) throw Error('Kildebilledet er ikke l\u00e6ngere tilg\u00e6ngeligt.');
+    const scale = Math.min(size / src.width, size / src.height);
+    const dw = src.width * scale, dh = src.height * scale;
+    // The decoder produces only the resolution needed for this viewport.
+    const bitmap = await createImageBitmap(src.blob, {
+      resizeWidth: Math.max(1, Math.round(dw)), resizeHeight: Math.max(1, Math.round(dh)), resizeQuality: 'high'
+    });
+    const canvas = new OffscreenCanvas(size, size), ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
+    ctx.fillStyle = 'rgb(' + src.matte.join(',') + ')'; ctx.fillRect(0, 0, size, size);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, (size - dw) / 2, (size - dh) / 2, dw, dh); bitmap.close();
+    const rgba = ctx.getImageData(0, 0, size, size).data;
+    rawCache.set(key, rgba); cacheBytes += rgba.byteLength;
+    while (cacheBytes > RAW_BUDGET && rawCache.size > 1) {
+      const first = rawCache.keys().next().value; cacheBytes -= rawCache.get(first).byteLength; rawCache.delete(first);
+    }
+    return rgba;
+  }
+  function correctPixels(source, cell, raw) {
+    const p = cell * STRIDE;
+    if (raw || profiles[p + 262] <= 0) return new Uint8ClampedArray(source);
+    const result = new Uint8ClampedArray(source.length);
+    const sourceA = profiles[p + 256], sourceB = profiles[p + 257];
+    const desiredA = profiles[p + 258], desiredB = profiles[p + 259];
+    const chroma = profiles[p + 260], blend = profiles[p + 261];
+    for (let i = 0; i < source.length; i += 4) {
+      const r = linear[source[i]], g = linear[source[i + 1]], b = linear[source[i + 2]];
+      const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b);
+      const m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b);
+      const s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+      const originalL = .2104542553 * l + .793617785 * m - .0040720468 * s;
+      const originalA = 1.9779984951 * l - 2.428592205 * m + .4505937099 * s;
+      const originalB = .0259040371 * l + .7827717662 * m - .808675766 * s;
+      const pos = clamp(originalL * 255, 0, 255), lo = Math.floor(pos), hi = Math.min(255, lo + 1);
+      const mapped = profiles[p + lo] + (profiles[p + hi] - profiles[p + lo]) * (pos - lo);
+      const L = originalL + (mapped - originalL) * blend;
+      const a = desiredA + chroma * (originalA - sourceA), bb = desiredB + chroma * (originalB - sourceB);
+      let rgb = rgbFromLab(L, a, bb);
+      if (rgb.some(c => c < 0 || c > 1)) {
+        let lower = 0, upper = 1;
+        for (let k = 0; k < 7; k++) {
+          const mid = (lower + upper) / 2, candidate = rgbFromLab(L, a * mid, bb * mid);
+          if (candidate.some(c => c < 0 || c > 1)) upper = mid; else lower = mid;
+        }
+        rgb = rgbFromLab(L, a * lower, bb * lower);
+      }
+      result[i] = gammaByte(rgb[0]); result[i + 1] = gammaByte(rgb[1]); result[i + 2] = gammaByte(rgb[2]); result[i + 3] = 255;
+    }
+    return result;
+  }
+  async function pump() {
+    if (running) return; running = true;
+    try {
+      while (inspectTasks.length || viewTasks.length) {
+        const task = inspectTasks.length ? inspectTasks.shift() : viewTasks.shift();
+        if (task.revision !== revision || (task.purpose === 'view' && task.token !== viewToken)) continue;
+        try {
+          const size = clamp(Math.round(task.size), 40, 1024);
+          const raw = await sourcePixels(assignments[task.cell], size);
+          if (task.revision !== revision || (task.purpose === 'view' && task.token !== viewToken)) continue;
+          const output = correctPixels(raw, task.cell, task.raw);
+          const canvas = new OffscreenCanvas(size, size), ctx = canvas.getContext('2d', { alpha: false });
+          ctx.putImageData(new ImageData(output, size, size), 0, 0);
+          const bitmap = canvas.transferToImageBitmap();
+          self.postMessage({ type: 'tile', revision, key: task.key, cell: task.cell, size, raw: task.raw,
+            purpose: task.purpose, inspectToken: task.inspectToken, bitmap }, [bitmap]);
+        } catch (error) {
+          self.postMessage({ type: 'detailError', revision, key: task.key, purpose: task.purpose,
+            inspectToken: task.inspectToken, message: error.message });
+        }
+        // Give newer pointer/viewport requests a chance to supersede old work.
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } finally { running = false; }
+  }
+  self.onmessage = event => {
+    const data = event.data;
+    if (data.type === 'init') {
+      revision = data.revision; sources = data.sources; profiles = data.profiles; assignments = data.assignments;
+      rawCache.clear(); cacheBytes = 0; viewTasks = []; inspectTasks = [];
+      if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') {
+        self.postMessage({ type: 'detailError', revision, message: 'Denne browser mangler OffscreenCanvas eller createImageBitmap. Detaljezoom kr\u00e6ver en nyere browser.' });
+      }
+    } else if (data.revision === revision && data.type === 'view') {
+      viewToken = data.token;
+      viewTasks = data.tasks.map(t => ({ ...t, purpose: 'view', token: viewToken, revision }));
+      pump();
+    } else if (data.revision === revision && data.type === 'inspect') {
+      inspectTasks = data.tasks.map(t => ({ ...t, purpose: 'inspect', inspectToken: data.inspectToken, revision }));
+      pump();
+    }
+  };
+}
+const mosaicWorkerURL=URL.createObjectURL(new Blob(['('+photoMosaicWorker.toString()+')()'],{type:'text/javascript'}));
+const detailWorkerURL=URL.createObjectURL(new Blob(['('+photoDetailWorker.toString()+')()'],{type:'text/javascript'}));
+function stopRender(){if(renderWorker){renderWorker.terminate();renderWorker=null}if(loadController){loadController.abort();loadController=null}}
+function clearDetails(){detailRevision++;detailWorker?.terminate();detailWorker=null;clearTimeout(detailTimer);for(const item of detailCache.values())item.bitmap.close();detailCache.clear();failedDetailKeys.clear();detailBytes=0;detailUnavailable=false;detailError='';}
+function resetDetailWorker(){clearDetails();if(!result)return;try{const worker=detailWorker=new Worker(detailWorkerURL),rev=detailRevision;worker.onmessage=e=>{const m=e.data;if(worker!==detailWorker||m.revision!==detailRevision||rev!==detailRevision){m.bitmap?.close();return}if(m.type==='detailError'){if(m.key)failedDetailKeys.add(m.key);else detailUnavailable=true;detailError=m.message;requestView(false);return}if(m.type!=='tile')return;if(detailCache.has(m.key)){const old=detailCache.get(m.key);old.bitmap.close();detailBytes-=old.bytes;detailCache.delete(m.key)}const bytes=m.size*m.size*4;detailCache.set(m.key,{bitmap:m.bitmap,bytes});detailBytes+=bytes;while(detailBytes>DETAIL_BUDGET&&detailCache.size>1){const k=detailCache.keys().next().value,item=detailCache.get(k);detailBytes-=item.bytes;item.bitmap.close();detailCache.delete(k)}requestView(false)};worker.onerror=e=>{detailUnavailable=true;detailError='Detaljezoom kunne ikke starte.';requestView(false)};worker.postMessage({type:'init',revision:rev,assignments:result.assignments,profiles:result.toneProfiles,sources:assets.map(a=>({blob:a.blob,width:a.width,height:a.height,matte:a.matte}))});}catch(e){detailUnavailable=true;detailError=e.message}}
+function renderDonorList(){if(!publication)return;const q=$('search').value.trim().toLocaleLowerCase('da-DK'),sort=$('sort').value;let rows=publication.donations.map((d,i)=>({d,i})).filter(x=>!q||x.d.name.toLocaleLowerCase('da-DK').includes(q));rows.sort((a,b)=>sort==='name'?a.d.name.localeCompare(b.d.name,'da'):(b.d.amount-a.d.amount)||a.d.name.localeCompare(b.d.name,'da'));$('listCount').textContent=rows.length+' af '+publication.donations.length;const list=$('donorList');list.replaceChildren();if(!rows.length){const p=document.createElement('div');p.className='empty-list';p.textContent='Ingen bidragydere matcher søgningen.';list.append(p);return}const frag=document.createDocumentFragment();for(const {d,i} of rows){const button=document.createElement('button');button.type='button';button.className='donor';const thumb=document.createElement('span');thumb.className='donor-thumb';thumb.style.background='rgb('+assets[i].matte.join(',')+')';const img=document.createElement('img');img.src=d.photo;img.alt='';thumb.append(img);const copy=document.createElement('span');copy.className='donor-copy';const strong=document.createElement('strong');strong.textContent=d.name;const small=document.createElement('small');small.textContent=money.format(d.amount);copy.append(strong,small);const arrow=document.createElement('span');arrow.className='arrow';arrow.textContent='›';button.append(thumb,copy,arrow);button.addEventListener('click',()=>openDonor(i));frag.append(button)}list.append(frag)}
+async function buildMosaic(pub,settings){stopRender();loadController=new AbortController();const signal=loadController.signal;const first=!result;if(first)setBuildState('Bygger kunstværket…','Klargør mål og billeder.',2,true);else{$('status').textContent='Opdaterer kunstværket…';state.hidden=true}try{const [target,prepared]=await Promise.all([buildTargetTiles(),prepareAssets(pub.donations,signal)]);if(signal.aborted)return;assets=prepared;const donors=pub.donations.map((d,i)=>({id:d.id,weight:d.amount,variants:assets[i].variants})),worker=renderWorker=new Worker(mosaicWorkerURL);await new Promise((resolve,reject)=>{worker.onmessage=e=>{const m=e.data;if(worker!==renderWorker)return;if(m.type==='progress'){const labels={analyserer:'Analyserer billeder',sammenligner:'Matcher motivet',matcher:'Fordeler felter',spreder:'Skaber variation',toner:'Tilpasser lys og farver'};if(first)setBuildState('Bygger kunstværket…',(labels[m.stage]||m.stage)+'…',m.value,true);else $('status').textContent=(labels[m.stage]||m.stage)+'…';return}if(m.type==='error'){reject(Error(m.message));return}if(m.type==='complete'){result=m;correctedContext.putImageData(new ImageData(m.pixels,1600,1600),0,0);rawContext.putImageData(new ImageData(m.raw,1600,1600),0,0);delete result.pixels;delete result.raw;renderWorker.terminate();renderWorker=null;resolve()}};worker.onerror=e=>reject(Error(e.message||'Render-motoren kunne ikke starte.'));worker.postMessage({donors,targetTiles:target,params:settings,seed:20260907})});if(signal.aborted)return;resetDetailWorker();renderDonorList();fitView();state.hidden=true;$('status').textContent='Opdateres automatisk';requestView();}catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke bygges.',e.message,0,true);$('status').textContent='Fejl: '+e.message}finally{loadController=null}}
+function metrics(){const r=canvas.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;view.width=r.width;view.height=r.height;view.dpr=Math.min(window.devicePixelRatio||1,2,2560/Math.max(r.width,r.height));const w=Math.max(1,Math.round(r.width*view.dpr)),h=Math.max(1,Math.round(r.height*view.dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}view.zoom=clamp(view.zoom,1,MAX_ZOOM);view.span=1600/view.zoom;const half=view.span/2;view.x=clamp(view.x,half,1600-half);view.y=clamp(view.y,half,1600-half);view.left=view.x-half;view.top=view.y-half;view.scale=view.width/view.span;return true}
+function detailKey(cell,size){return detailRevision+':'+cell+':'+size+':0'}
+function visibleCells(){if(!result||view.zoom<=1.15)return[];const wanted=TILE*view.scale*view.dpr;if(wanted<=42)return[];const size=clamp(Math.ceil(wanted/32)*32,64,1024),cells=[],minX=clamp(Math.floor(view.left/TILE),0,39),minY=clamp(Math.floor(view.top/TILE),0,39),maxX=clamp(Math.floor((view.left+view.span-1e-7)/TILE),0,39),maxY=clamp(Math.floor((view.top+view.span-1e-7)/TILE),0,39);for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)cells.push({i:y*40+x,col:x,row:y,size,distance:(x*TILE+20-view.x)**2+(y*TILE+20-view.y)**2});return cells.sort((a,b)=>a.distance-b.distance)}
+function queueDetails(){if(!result||!detailWorker||document.hidden)return;const cells=visibleCells();const tasks=[],seen=new Set();for(const c of cells){const key=detailKey(c.i,c.size);if(detailCache.has(key)||failedDetailKeys.has(key)||seen.has(key))continue;seen.add(key);tasks.push({cell:c.i,size:c.size,raw:false,key})}detailWorker.postMessage({type:'view',revision:detailRevision,token:++detailViewToken,tasks})}
+function paint(){frame=null;if(!metrics())return;ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle='#ececea';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(result){ctx.drawImage(correctedCanvas,view.left,view.top,view.span,view.span,0,0,canvas.width,canvas.height);for(const c of visibleCells()){const item=detailCache.get(detailKey(c.i,c.size));if(!item)continue;const x=Math.round((c.col*TILE-view.left)/view.span*canvas.width),y=Math.round((c.row*TILE-view.top)/view.span*canvas.height),x1=Math.round(((c.col+1)*TILE-view.left)/view.span*canvas.width),y1=Math.round(((c.row+1)*TILE-view.top)/view.span*canvas.height);ctx.drawImage(item.bitmap,x,y,x1-x,y1-y)}}$('zoomValue').textContent=integer.format(Math.round(view.zoom*100))+'%';$('zoomRange').value=Math.round(Math.log(view.zoom)/Math.log(MAX_ZOOM)*100);$('zoomOut').disabled=!result||view.zoom<=1.001;$('zoomIn').disabled=!result||view.zoom>=MAX_ZOOM-.001;const cells=visibleCells(),ready=cells.filter(c=>detailCache.has(detailKey(c.i,c.size))).length;$('hint').textContent=detailUnavailable?(detailError||'Detaljezoom er ikke tilgængelig.'):(cells.length&&ready<cells.length?'Klargør skarpe kildedetaljer…':view.zoom>1.05?'Træk for at flytte. Klik et felt for hele originalen.':'Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.')}
+function requestView(details=true){if(!frame)frame=requestAnimationFrame(paint);if(details){clearTimeout(detailTimer);detailTimer=setTimeout(queueDetails,110)}}
+function setZoom(next,ax=null,ay=null){if(!result||!metrics())return;const x=ax??view.width/2,y=ay??view.height/2,wx=view.left+x/view.width*view.span,wy=view.top+y/view.height*view.span;view.zoom=clamp(next,1,MAX_ZOOM);const span=1600/view.zoom;view.x=wx+(.5-x/view.width)*span;view.y=wy+(.5-y/view.height)*span;requestView()}
+function fitView(){view={...view,zoom:1,x:800,y:800};requestView()}
+function hit(clientX,clientY){if(!result||!metrics())return null;const r=canvas.getBoundingClientRect(),x=clientX-r.left,y=clientY-r.top;if(x<0||y<0||x>=r.width||y>=r.height)return null;const col=clamp(Math.floor((view.left+x/r.width*view.span)/TILE),0,39),row=clamp(Math.floor((view.top+y/r.height*view.span)/TILE),0,39),cell=row*40+col;return{cell,donor:result.assignments[cell],rect:r}}
+function showTooltip(e){if(pointers.size)return;const h=hit(e.clientX,e.clientY);if(!h||h.donor<0){tooltip.style.display='none';return}const d=publication.donations[h.donor];tooltip.textContent=d.name+' · '+money.format(d.amount);tooltip.style.display='block';tooltip.style.left=clamp(e.clientX-h.rect.left+12,7,Math.max(7,h.rect.width-270))+'px';tooltip.style.top=clamp(e.clientY-h.rect.top+12,7,Math.max(7,h.rect.height-55))+'px'}
+function firstCell(donor){if(!result)return-1;for(let i=0;i<result.assignments.length;i++)if(result.assignments[i]===donor)return i;return-1}
+function openDonor(i,cell=-1){if(!publication||i<0)return;selectedDonor=i;selectedCell=cell>=0?cell:firstCell(i);const d=publication.donations[i],asset=assets[i];$('previewName').textContent=d.name;$('previewMeta').textContent=money.format(d.amount)+' · '+integer.format(result?.counts?.[i]||0)+' felter';$('previewWrap').style.background='rgb('+asset.matte.join(',')+')';$('previewImage').src=d.photo;$('previewImage').alt='Billede fra '+d.name;$('findTile').disabled=selectedCell<0;if(typeof preview.showModal==='function')preview.showModal();else preview.setAttribute('open','')}
+function focusSelected(){if(selectedCell<0)return;preview.close?.();view.zoom=12;view.x=(selectedCell%40+.5)*TILE;view.y=(Math.floor(selectedCell/40)+.5)*TILE;requestView();setTimeout(()=>canvas.focus({preventScroll:false}),30)}
+async function loadPublication(force=false){clearTimeout(pollTimer);try{$('status').textContent='Henter seneste version…';const [dataResp,setResp]=await Promise.all([fetch('public-mosaic.json?v='+Date.now(),{cache:'no-store'}),fetch('mosaic-settings.json?v='+Date.now(),{cache:'no-store'}).catch(()=>null)]);if(!dataResp.ok)throw Error('public-mosaic.json: HTTP '+dataResp.status);const data=await dataResp.json();let settingsData=DEFAULT_SETTINGS;if(setResp&&setResp.ok){try{settingsData={...DEFAULT_SETTINGS,...await setResp.json()}}catch{}}if(!Array.isArray(data.donations))throw Error('Ugyldig datafil.');const donations=data.donations.filter(d=>d&&d.photo&&Number(d.amount)>0).map(d=>({id:String(d.id??''),name:String(d.name||'Anonym'),amount:Number(d.amount)||0,photo:String(d.photo),created_at:String(d.created_at||'')})).sort((a,b)=>a.id.localeCompare(b.id));const next=hashText(JSON.stringify({donations:donations.map(d=>[d.id,d.name,d.amount,d.photo]),settings:settingsData}));publication={...data,donations};$('updated').textContent=data.updated_at?'Senest opdateret '+fmtDate(data.updated_at):'Senest opdateret';$('total').textContent=money.format(donations.reduce((s,d)=>s+d.amount,0));$('count').textContent=integer.format(donations.length);if(!donations.length){stopRender();publication={...data,donations};result=null;assets=[];clearDetails();renderDonorList();setBuildState('Kunstværket venter på de første bidrag.','Kom tilbage snart.',0,true);requestView();schedulePoll();return}if(!force&&signature===next){$('status').textContent='Opdateret';schedulePoll();return}signature=next;await buildMosaic(publication,settingsFrom(settingsData));schedulePoll();reportHeight()}catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke indlæses.','Prøv igen om et øjeblik.',0,true);$('status').textContent='Forbindelsesfejl';schedulePoll(15000)}}
+function schedulePoll(delay=POLL_MS){clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(()=>loadPublication(false),delay)}
+$('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});
+canvas.addEventListener('pointerdown',e=>{if(!result||(e.pointerType==='mouse'&&e.button!==0))return;canvas.focus({preventScroll:true});tooltip.style.display='none';if(!pointers.size){moved=false;pointerOrigin={x:e.clientX,y:e.clientY}}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{canvas.setPointerCapture(e.pointerId)}catch{}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){showTooltip(e);return}if(!metrics())return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerOrigin&&Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>4)moved=true;if(moved){view.x-=(e.clientX-prev.x)/view.scale;view.y-=(e.clientY-prev.y)/view.scale;canvas.classList.add('dragging');requestView()}});function endPointer(e,cancelled){if(!pointers.has(e.pointerId))return;pointers.delete(e.pointerId);try{canvas.releasePointerCapture(e.pointerId)}catch{}if(!pointers.size){canvas.classList.remove('dragging');if(!cancelled&&!moved){const h=hit(e.clientX,e.clientY);if(h&&h.donor>=0)openDonor(h.donor,h.cell)}moved=false;pointerOrigin=null}}canvas.addEventListener('pointerup',e=>endPointer(e,false));canvas.addEventListener('pointercancel',e=>endPointer(e,true));canvas.addEventListener('pointerleave',()=>{if(!pointers.size)tooltip.style.display='none'});canvas.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();const r=canvas.getBoundingClientRect(),delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?r.height:1);setZoom(view.zoom*Math.exp(-clamp(delta,-500,500)*.002),e.clientX-r.left,e.clientY-r.top)},{passive:false});canvas.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){e.preventDefault();setZoom(view.zoom*1.5)}else if(e.key==='-'||e.key==='_'){e.preventDefault();setZoom(view.zoom/1.5)}else if(e.key==='Home'){e.preventDefault();fitView()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(pollTimer);else loadPublication(false)});window.addEventListener('resize',()=>{requestView();reportHeight()});if('ResizeObserver'in window)new ResizeObserver(()=>{requestView();reportHeight()}).observe($('app'));window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);stopRender();clearDetails()});
+function reportHeight(){if(window.parent===window)return;let origin='*';try{if(document.referrer)origin=new URL(document.referrer).origin}catch{}window.parent.postMessage({type:'charity-mosaic-height',height:Math.ceil(document.documentElement.scrollHeight)},origin)}
+loadPublication(true);
 })();
 </script>
 </body>
