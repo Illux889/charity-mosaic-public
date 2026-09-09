@@ -1,5 +1,15 @@
 {
-  "tone_strength": 94,
-  "photo_detail": 55,
-  "original_colour": 32
+  "version": 4,
+  "updated_at": "2026-09-09T09:13:11.639Z",
+  "total_amount": 0,
+  "donation_count": 1,
+  "donations": [
+    {
+      "id": "",
+      "name": "Anonym",
+      "amount": 0,
+      "photo": "",
+      "created_at": ""
+    }
+  ]
 }
