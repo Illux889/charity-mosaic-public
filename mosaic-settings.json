@@ -2,5 +2,6 @@
   "tone_strength": 100,
   "photo_detail": 0,
   "original_colour": 0,
-  "grid_size": 100
+  "grid_width": 100,
+  "grid_height": 140
 }
