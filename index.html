@@ -30,7 +30,7 @@ dialog{position:fixed;inset:0;margin:auto;width:min(720px,calc(100vw - 32px));ma
 <script>
 (() => {
 'use strict';
-const MIN_GRID=40,MAX_GRID=100,PHOTO_SIZE=40,OVERVIEW_SIZE=1600,POLL_MS=60000,MAX_ZOOM=40,TARGET_SRC='target.png';
+const MIN_GRID=40,MAX_GRID=100,PHOTO_SIZE=40,OVERVIEW_SIZE=1600,POLL_MS=60000,MAX_ZOOM=40,TARGET_SRC='target.jpg';
 const DEFAULT_SETTINGS={tone_strength:94,photo_detail:55,original_colour:32,grid_size:40};
 const $=id=>document.getElementById(id),canvas=$('mosaic'),ctx=canvas.getContext('2d',{alpha:false}),state=$('state'),tooltip=$('tooltip'),preview=$('preview');
 const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK'),percent=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2});
