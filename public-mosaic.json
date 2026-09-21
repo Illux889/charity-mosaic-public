@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-09-21T12:40:41.576Z",
-  "total_amount": 40500,
-  "donation_count": 2,
+  "updated_at": "2026-09-21T12:40:44.637Z",
+  "total_amount": 41734,
+  "donation_count": 3,
   "donations": [
     {
       "id": "15",
@@ -17,6 +17,13 @@
       "amount": 500,
       "photo": "https://5bdacnc6s2.ucarecd.net/72bac167-b06e-41e8-a3e7-65a08630e9a7/BeskarettilCoolunite.jpg",
       "created_at": "2026-09-21T12:40:10.636Z"
+    },
+    {
+      "id": "20",
+      "name": "test",
+      "amount": 1234,
+      "photo": "https://5bdacnc6s2.ucarecd.net/b087abd0-2c2a-4c96-a1d6-8eab90c1eb17/Illuxlogo.png",
+      "created_at": "2026-09-21T12:40:11.501Z"
     }
   ]
 }
