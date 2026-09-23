@@ -4,22 +4,49 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Velgørenhedsmosaik</title>
-<link rel="stylesheet" href="engine/mosaic.css">
+<meta name="description" content="Udforsk CoolUnite kunstmosaikker fra Artpusher og Hornsleth.">
+<title>CoolUnite kunstmosaikker</title>
+<link rel="stylesheet" href="./landing.css">
 </head>
 <body>
-<main class="app" id="app">
-<header class="top"><h2>Et kunstværk - Under udvikling</h2><div class="updated" id="updated">Henter seneste version…</div></header>
-<div class="layout">
-<div class="main-column">
-<section class="viewer" id="viewer"><div class="stage" id="stage"><canvas id="mosaic" tabindex="0" aria-label="Interaktiv fotomosaik"></canvas><div class="state" id="state"><div><strong id="stateTitle">Henter kunstværket…</strong><span id="stateText">Et øjeblik.</span><br><progress id="progress" max="100" value="0"></progress></div></div><div class="tooltip" id="tooltip"></div></div><div class="controls"><button class="square" id="zoomOut" type="button" aria-label="Zoom ud">−</button><button class="square" id="zoomIn" type="button" aria-label="Zoom ind">+</button><div class="zoomline"><input id="zoomRange" type="range" min="0" max="100" value="0" aria-label="Zoom"><output id="zoomValue">100%</output></div><button id="fit" type="button">Hele kunstværket</button><button id="fullscreen" type="button">Fuld skærm</button></div><div class="hint" id="hint">Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.</div></section>
+<main class="page">
+  <header class="intro">
+    <p class="eyebrow">Kunstprojekter</p>
+    <h1>CoolUnite kunstmosaikker</h1>
+    <p class="lead">Vælg et kunstværk og se, hvordan bidragene tilsammen bliver til ét samlet motiv.</p>
+  </header>
 
-</div>
-<aside class="summary-side"><div class="total-card"><small>Samlet doneret</small><strong id="total">—</strong></div><div class="zoom-preview-card"><!--<svg class="zoom-preview-arrow" viewBox="0 0 62 36" aria-hidden="true"><defs><marker id="zoom-preview-arrow-head" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#7b6a36"></path></marker></defs><path d="M 58 22 C 40 22, 25 13, 2 16" fill="none" stroke="#7b6a36" stroke-width="1.5" stroke-linecap="round" marker-end="url(#zoom-preview-arrow-head)"></path></svg>--><div class="zoom-preview"><div class="zoom-preview-label">ZOOMET IND</div><div class="zoom-preview-media"><img id="zoomPreviewSource" alt="Zoomet udsnit med individuelle donorlogoer og billeder"><div class="zoom-preview-empty" id="zoomPreviewEmpty" hidden>Ingen forhåndsvisning endnu.</div></div><p>Her zoomer vi ind i mosaikken og viser de enkelte bidrag, der tilsammen bygger motivet.</p></div></div><section class="leaderboard sidebar-leaderboard"><div class="leaderboard-head"><div><h2>Bidragsydere</h2><p>Se hvem der har været med, og hvor meget de har bidraget med.</p></div><div class="leaderboard-tools"><input class="search" id="search" type="search" placeholder="Søg efter navn…" autocomplete="off"></div></div><div class="list-head"><span id="listCount"></span><select id="sort" aria-label="Sortering"><option value="amount">Største bidrag</option><option value="name">Navn A–Å</option></select></div><div class="donor-list" id="donorList"></div></section><a class="donate-cta" id="donateCta" href="#charity-donation" target="_top" rel="noopener"><span>Donér et bidrag</span><span>↓</span></a></aside>
-</div>
-<footer class="footer"><span id="physicalInfo">100 × 140 felter · 14.000 felter i alt</span><span id="status">Opdateres automatisk</span></footer>
+  <section aria-label="Kunstværker">
+    <ul class="gallery">
+      <li>
+        <a class="art-card" href="./artists/artpusher/" aria-label="Se kunstværket af Artpusher">
+          <div class="art-card__media">
+            <img src="./artists/artpusher/target.jpg" alt="Artpushers kunstmotiv" width="5906" height="8268" loading="eager">
+          </div>
+          <div class="art-card__body">
+            <h2>Artpusher</h2>
+            <span class="art-card__cta">Se kunstværket <span aria-hidden="true">→</span></span>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a class="art-card" href="./artists/hornsleth/" aria-label="Se kunstværket af Hornsleth">
+          <div class="art-card__media">
+            <img src="./artists/hornsleth/target.jpg" alt="Hornsleths kunstmotiv" width="857" height="1200" loading="eager">
+          </div>
+          <div class="art-card__body">
+            <h2>Hornsleth</h2>
+            <span class="art-card__cta">Se kunstværket <span aria-hidden="true">→</span></span>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <p class="local-note" id="localNote" hidden>Interaktive mosaikker skal testes via en lokal webserver.</p>
 </main>
-<dialog id="preview"><div class="dialog-head"><div><h2 id="previewName"></h2><p id="previewMeta"></p></div><button type="button" id="closePreview">Luk</button></div><div class="photo-wrap" id="previewWrap"><img id="previewImage" alt=""></div><div class="dialog-actions"><span>Hele det indsendte billede vises uden beskæring.</span><button id="findTile" type="button">Find i kunstværket</button></div></dialog>
-<script src="engine/mosaic.js" data-artist-base="artists/artpusher/" data-target="target.jpg" data-settings="mosaic-settings.json" data-publication="public-mosaic.json" data-zoom-preview="zoom-preview.png"></script>
+<script>
+if (location.protocol === 'file:') document.getElementById('localNote').hidden = false;
+</script>
 </body>
 </html>
