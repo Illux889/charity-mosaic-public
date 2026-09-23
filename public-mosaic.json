@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-09-22T12:51:49.862Z",
-  "total_amount": 110000,
-  "donation_count": 3,
+  "updated_at": "2026-09-23T08:56:16.655Z",
+  "total_amount": 115000,
+  "donation_count": 4,
   "donations": [
     {
       "id": "23",
@@ -24,6 +24,13 @@
       "amount": 30000,
       "photo": "https://5bdacnc6s2.ucarecd.net/6c5f0350-3819-49e9-b0d9-3c0f99ee937d/LogotilInstagramkopier.jpg",
       "created_at": "2026-09-22T12:51:44.379Z"
+    },
+    {
+      "id": "28",
+      "name": "Plakatwerket",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/d8eaddf8-4bff-4159-8ef1-b7af8a3ac9c8/PW.png",
+      "created_at": "2026-09-23T08:56:13.682Z"
     }
   ]
 }
