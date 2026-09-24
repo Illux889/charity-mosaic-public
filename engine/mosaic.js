@@ -11,7 +11,14 @@ const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maxim
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 $('viewer').appendChild(tooltip);
 if(ZOOM_PREVIEW_SRC)$('zoomPreviewSource').src=ZOOM_PREVIEW_SRC;else{$('zoomPreviewSource').hidden=true;$('zoomPreviewEmpty').hidden=false}
-function configureDonateLink(){const link=$('donateCta');if(!link)return;try{if(document.referrer){const url=new URL(document.referrer);url.hash='charity-donation';link.href=url.toString();return}}catch{}link.addEventListener('click',e=>{e.preventDefault();window.parent.postMessage({type:'charity-mosaic-donate',target:'charity-donation'},'*')})}
+function configureDonateLink(){
+const link=$('donateCta');if(!link)return;
+const label=link.querySelector('span');if(label)label.textContent='Donér';
+const arrow=link.querySelector('span:last-child');if(arrow&&arrow!==label)arrow.setAttribute('aria-hidden','true');
+let targetOrigin='*';
+try{if(document.referrer){const url=new URL(document.referrer);if(url.origin!=='null')targetOrigin=url.origin;url.hash='charity-donation';link.href=url.toString()}}catch{}
+link.addEventListener('click',e=>{if(window.parent===window)return;e.preventDefault();window.parent.postMessage({type:'charity-mosaic-donate'},targetOrigin)})
+}
 function donorFieldCount(index){return Number(result?.counts?.[index]||0)}
 function donorFieldPercentText(index){const count=donorFieldCount(index);return percent.format(TOTAL>0?count/TOTAL*100:0)+' %'}
 let GRID_W=GRID_WIDTH,GRID_H=GRID_HEIGHT,TOTAL=GRID_W*GRID_H,RENDER_WIDTH=1600,RENDER_HEIGHT=2240,TILE=16;
