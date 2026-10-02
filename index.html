@@ -4,19 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="description" content="Udforsk CoolUnite kunstmosaikker fra Artpusher og Hornsleth.">
-<title>CoolUnite kunstmosaikker</title>
+<meta name="description" content="Udforsk CoolUnite og Hornsleths fælles velgørenhedsmosaik.">
+<title>CoolUnite-mosaikken</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./landing.css">
-<script src="./landing.js" defer></script>
+<link rel="stylesheet" href="./engine/mosaic.css">
 </head>
 <body>
-<main class="page">
+<main class="page app" id="app">
   <header class="intro">
-    <h1>CoolUnite kunstmosaikker</h1>
-    <p class="lead">Vælg et kunstværk og se, hvordan bidragene tilsammen bliver til ét samlet motiv.</p>
+    <h1>CoolUnite-mosaikken</h1>
+    <p class="lead">Sammen skaber vi ét kunstværk af Hornsleth til fordel for CoolUnite. Hvert bidrag bliver en del af motivet.</p>
   </header>
 
   <section class="countdown" aria-labelledby="countdownTitle">
@@ -32,37 +31,53 @@
     </div>
   </section>
 
-  <section aria-label="Kunstværker">
-    <ul class="gallery">
-      <li>
-        <a class="art-card" href="https://www.illux.dk/coolunite/artpusher" target="_top" aria-label="Se kunstværket af Artpusher">
-          <div class="art-card__media">
-            <img src="./artists/artpusher/target.jpg" alt="Artpushers kunstmotiv" width="5906" height="8268" loading="eager">
+  <section class="mosaic-section" aria-label="CoolUnite-mosaikken">
+    <header class="top"><h2>Et kunstværk under udvikling</h2><div class="updated" id="updated">Henter seneste version…</div></header>
+    <div class="layout">
+      <div class="main-column">
+        <section class="viewer" id="viewer" aria-label="Interaktiv mosaik">
+          <div class="stage" id="stage">
+            <canvas id="mosaic" tabindex="0" aria-label="Interaktiv fotomosaik"></canvas>
+            <div class="state" id="state"><div><strong id="stateTitle">Henter kunstværket…</strong><span id="stateText">Et øjeblik.</span><br><progress id="progress" max="100" value="0"></progress></div></div>
+            <div class="tooltip" id="tooltip"></div>
           </div>
-          <div class="art-card__body">
-            <h2>Artpusher</h2>
-            <span class="art-card__cta">Se kunstværket <span aria-hidden="true">→</span></span>
+          <div class="controls">
+            <button class="square" id="zoomOut" type="button" aria-label="Zoom ud">−</button>
+            <button class="square" id="zoomIn" type="button" aria-label="Zoom ind">+</button>
+            <div class="zoomline"><input id="zoomRange" type="range" min="0" max="100" value="0" aria-label="Zoom"><output id="zoomValue">100%</output></div>
+            <button id="fit" type="button">Hele kunstværket</button>
+            <button id="fullscreen" type="button">Fuld skærm</button>
           </div>
-        </a>
-      </li>
-      <li>
-        <a class="art-card" href="https://www.illux.dk/coolunite/hornsleth" target="_top" aria-label="Se kunstværket af Hornsleth">
-          <div class="art-card__media">
-            <img src="./artists/hornsleth/target.jpg" alt="Hornsleths kunstmotiv" width="857" height="1200" loading="eager">
-          </div>
-          <div class="art-card__body">
-            <h2>Hornsleth</h2>
-            <span class="art-card__cta">Se kunstværket <span aria-hidden="true">→</span></span>
-          </div>
-        </a>
-      </li>
-    </ul>
+          <div class="hint" id="hint">Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.</div>
+        </section>
+      </div>
+      <aside class="summary-side">
+        <div class="total-card"><small>Samlet doneret</small><strong id="total">—</strong><small id="donationCount">— bidrag</small></div>
+        <section class="leaderboard sidebar-leaderboard" aria-labelledby="donorHeading">
+          <div class="leaderboard-head"><h2 id="donorHeading">Bidragsydere</h2><button type="button" id="showAll" class="text-button">Se alle</button></div>
+          <p>Se hvem der har været med, og hvor meget de har bidraget med.</p>
+          <div class="leaderboard-tools"><input class="search" id="search" type="search" placeholder="Søg efter navn…" autocomplete="off" aria-label="Søg efter bidragsyder"></div>
+          <div class="list-head"><span id="listCount"></span><select id="sort" aria-label="Sortering"><option value="amount">Største bidrag</option><option value="name">Navn A–Å</option></select></div>
+          <div class="donor-list" id="donorList"></div>
+        </section>
+        <a class="donate-cta" id="donateCta" href="https://www.illux.dk/coolunite#charity-donation" target="_top" rel="noopener"><span>Donér</span><span aria-hidden="true">↓</span></a>
+      </aside>
+    </div>
   </section>
 
-  <p class="local-note" id="localNote" hidden>Interaktive mosaikker skal testes via en lokal webserver.</p>
+  <section class="calculator" aria-labelledby="calculatorTitle">
+    <h2 id="calculatorTitle">Hvad svarer dit bidrag cirka til?</h2>
+    <div class="calculator-grid" id="calculatorGrid"></div>
+    <p id="calculatorNote">Antallet af felter kan ændre sig, når nye donationer kommer til.</p>
+  </section>
+
+  <footer class="footer"><span id="physicalInfo">100 × 140 felter</span><span id="status">Opdateres automatisk</span></footer>
 </main>
-<script>
-if (location.protocol === 'file:') document.getElementById('localNote').hidden = false;
-</script>
+
+<dialog id="preview" aria-labelledby="previewName"><div class="dialog-head"><div><h2 id="previewName"></h2><p id="previewMeta"></p></div><button type="button" id="closePreview">Luk</button></div><div class="photo-wrap" id="previewWrap"><img id="previewImage" alt=""></div><div class="dialog-actions"><span>Hele det indsendte billede vises uden beskæring.</span><button id="findTile" type="button">Find i kunstværket</button></div></dialog>
+
+<dialog id="allDonors" aria-labelledby="allDonorsTitle"><div class="dialog-head"><div><h2 id="allDonorsTitle">Alle bidragsydere</h2><p id="allDonorsCount"></p></div><button type="button" id="closeAll">Luk</button></div><div class="all-donors-summary"><span>Samlet doneret</span><strong id="allDonorsTotal"></strong></div><div id="allDonorsList" class="all-donors-list"></div></dialog>
+
+<script src="./engine/mosaic.js"></script>
 </body>
 </html>

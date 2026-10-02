@@ -2,30 +2,49 @@
 'use strict';
 const GRID_WIDTH=100,GRID_HEIGHT=140,PHOTO_SIZE=40,OVERVIEW_WIDTH=1600,POLL_MS=60000,MAX_ZOOM=40;
 const DEFAULT_SETTINGS={tone_strength:94,photo_detail:55,original_colour:32};
-const artistConfig=document.currentScript?.dataset||{};
-for(const key of ['artistBase','target','settings','publication'])if(!artistConfig[key])throw Error('Manglende kunstnerkonfiguration: '+key);
-const artistBase=new URL(artistConfig.artistBase,location.href),artistAsset=key=>new URL(artistConfig[key],artistBase).href;
-const TARGET_SRC=artistAsset('target'),SETTINGS_SRC=artistAsset('settings'),PUBLICATION_SRC=artistAsset('publication'),ZOOM_PREVIEW_SRC=artistConfig.zoomPreview?artistAsset('zoomPreview'):null;
+const TARGET_SRC=new URL('../target.png',document.currentScript.src).href;
+const OVERLAY_SRC=new URL('../overlay.png',document.currentScript.src).href;
+const SETTINGS_SRC=new URL('../mosaic-settings.json',document.currentScript.src).href;
+const PUBLICATION_SRC=new URL('../public-mosaic.json',document.currentScript.src).href;
 const $=id=>document.getElementById(id),canvas=$('mosaic'),ctx=canvas.getContext('2d',{alpha:false}),state=$('state'),tooltip=$('tooltip'),preview=$('preview');
 const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK'),percent=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 $('viewer').appendChild(tooltip);
-if(ZOOM_PREVIEW_SRC)$('zoomPreviewSource').src=ZOOM_PREVIEW_SRC;else{$('zoomPreviewSource').hidden=true;$('zoomPreviewEmpty').hidden=false}
+function parentOrigin(){try{if(document.referrer){const origin=new URL(document.referrer).origin;if(origin!=='null')return origin}}catch{}return'*'}
+function postToParent(message){if(window.parent!==window)window.parent.postMessage(message,parentOrigin())}
 function configureDonateLink(){
 const link=$('donateCta');if(!link)return;
 const label=link.querySelector('span');if(label)label.textContent='Donér';
 const arrow=link.querySelector('span:last-child');if(arrow&&arrow!==label)arrow.setAttribute('aria-hidden','true');
-let targetOrigin='*';
-try{if(document.referrer){const url=new URL(document.referrer);if(url.origin!=='null')targetOrigin=url.origin;url.hash='charity-donation';link.href=url.toString()}}catch{}
-link.addEventListener('click',e=>{if(window.parent===window)return;e.preventDefault();window.parent.postMessage({type:'charity-mosaic-donate'},targetOrigin)})
+try{if(document.referrer){const url=new URL(document.referrer);if(url.origin!=='null'){url.hash='charity-donation';link.href=url.toString()}}}catch{}
+link.addEventListener('click',e=>{if(window.parent===window)return;e.preventDefault();postToParent({type:'charity-mosaic-donate'})})
+}
+const dialogs=[preview,$('allDonors')];
+let modalOpen=false,lockedScrollY=0,previewReturnFocus=null;
+function syncModalState(){
+  const open=dialogs.some(dialog=>dialog.open);
+  if(open===modalOpen)return;
+  modalOpen=open;
+  if(open){
+    lockedScrollY=window.scrollY;
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    document.body.style.top=-lockedScrollY+'px';
+  }else{
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.body.style.top='';
+    window.scrollTo(0,lockedScrollY);
+  }
+  postToParent({type:'charity-mosaic-modal',open});
 }
 function donorFieldCount(index){return Number(result?.counts?.[index]||0)}
-function donorFieldPercentText(index){const count=donorFieldCount(index);return percent.format(TOTAL>0?count/TOTAL*100:0)+' %'}
-let GRID_W=GRID_WIDTH,GRID_H=GRID_HEIGHT,TOTAL=GRID_W*GRID_H,RENDER_WIDTH=1600,RENDER_HEIGHT=2240,TILE=16;
+function donorFieldPercentText(index){const count=donorFieldCount(index);return percent.format(USABLE>0?count/USABLE*100:0)+' %'}
+let GRID_W=GRID_WIDTH,GRID_H=GRID_HEIGHT,TOTAL=GRID_W*GRID_H,USABLE=TOTAL,BLOCKED=0,RENDER_WIDTH=1600,RENDER_HEIGHT=2240,TILE=16;
 let publication=null,assets=[],result=null,signature='',pollTimer=null,renderWorker=null,loadController=null;
-let targetTilesCache=null,targetTilesKey='',targetImagePromise=null,targetPreviewSurface=null;
+let targetTilesCache=null,targetTilesKey='',targetImagePromise=null,targetImage=null,overlayImagePromise=null,overlayImage=null,blockedMask=null;
 let correctedCanvas=document.createElement('canvas'),rawCanvas=document.createElement('canvas');correctedCanvas.width=rawCanvas.width=RENDER_WIDTH;correctedCanvas.height=rawCanvas.height=RENDER_HEIGHT;
-let correctedContext=correctedCanvas.getContext('2d',{alpha:false}),rawContext=rawCanvas.getContext('2d',{alpha:false});
+let correctedContext=correctedCanvas.getContext('2d'),rawContext=rawCanvas.getContext('2d');
 let view={zoom:1,x:RENDER_WIDTH/2,y:RENDER_HEIGHT/2,width:1,height:1,dpr:1,scale:1,left:0,top:0,spanW:RENDER_WIDTH,spanH:RENDER_HEIGHT},frame=null,pointers=new Map(),moved=false,pointerOrigin=null,selectedDonor=-1,selectedCell=-1;
 let detailWorker=null,detailRevision=0,detailBytes=0,detailTimer=null,detailViewToken=0,detailError='',detailUnavailable=false;const detailCache=new Map(),failedDetailKeys=new Set(),DETAIL_BUDGET=64*1024*1024;
 function fmtDate(value){const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('da-DK',{dateStyle:'short',timeStyle:'short'}):''}
@@ -33,7 +52,7 @@ function hashText(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.
 function settingNumber(v,fallback){const n=Number(v);return Number.isFinite(n)?clamp(n>1?n/100:n,0,1):fallback}
 function settingsFrom(data){return{preserveOriginals:false,strength:settingNumber(data?.tone_strength,.94),detail:settingNumber(data?.photo_detail,.55),originalColour:settingNumber(data?.original_colour,.32)}}
 function gridFrom(data){const w=Number(data?.grid_width),h=Number(data?.grid_height);return{width:Number.isFinite(w)?Math.max(1,Math.round(w)):GRID_WIDTH,height:Number.isFinite(h)?Math.max(1,Math.round(h)):GRID_HEIGHT}}
-function updatePhysicalInfo(){$('physicalInfo').textContent=integer.format(GRID_W)+' × '+integer.format(GRID_H)+' felter · '+integer.format(TOTAL)+' felter i alt'}
+function updatePhysicalInfo(){$('physicalInfo').textContent=integer.format(GRID_W)+' × '+integer.format(GRID_H)+' felter · '+integer.format(USABLE)+' brugbare af '+integer.format(TOTAL)+' felter'}
 function setBuildState(title,text,value=0,blocking=true){$('stateTitle').textContent=title;$('stateText').textContent=text;$('progress').value=clamp(value,0,100);state.hidden=!blocking}
 function dataUrlBlob(src){const comma=src.indexOf(','),type=src.slice(5,src.indexOf(';')),bytes=atob(src.slice(comma+1)),buf=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)buf[i]=bytes.charCodeAt(i);return new Blob([buf],{type})}
 async function fetchBlob(src,signal){if(/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(src))return dataUrlBlob(src);const u=new URL(src,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Ugyldig billedadresse.');const isTarget=u.href===TARGET_SRC;if(isTarget)u.searchParams.set('_v',Date.now().toString());const r=await fetch(u.href,{signal,mode:'cors',cache:isTarget?'no-store':'force-cache'});if(!r.ok)throw Error('Billede kunne ikke hentes ('+r.status+').');return r.blob()}
@@ -44,14 +63,59 @@ function detectSourceBackground(image){const iw=image.naturalWidth||image.width,
 const assetCache=new Map();
 async function prepareAsset(d,signal){const key=d.photo;if(assetCache.has(key))return assetCache.get(key);const blob=await fetchBlob(key,signal);if(blob.size>25*1024*1024)throw Error('Et billede er over 25 MB.');const image=await decodeBlob(blob);if(image.naturalWidth*image.naturalHeight>64000000)throw Error('Et billede er over 64 megapixel.');const background=detectSourceBackground(image),matte=background.rgb.slice(),scratch=document.createElement('canvas');scratch.width=scratch.height=PHOTO_SIZE;drawContained(scratch.getContext('2d',{alpha:false,willReadFrequently:true}),image,0,0,PHOTO_SIZE,PHOTO_SIZE,matte);const rgba=scratch.getContext('2d',{alpha:false,willReadFrequently:true}).getImageData(0,0,PHOTO_SIZE,PHOTO_SIZE).data;const asset={blob,image,matte,background,width:image.naturalWidth,height:image.naturalHeight,variants:[{position:.5,fit:'contain',rgba}]};assetCache.set(key,asset);return asset}
 async function prepareAssets(donations,signal){const out=new Array(donations.length);let next=0,done=0;async function runner(){while(next<donations.length&&!signal.aborted){const i=next++;out[i]=await prepareAsset(donations[i],signal);done++;if(!result)setBuildState('Klargør billeder…',done+' / '+donations.length,8+done/Math.max(1,donations.length)*15,true)}}const workers=Array.from({length:Math.min(6,donations.length)},runner);await Promise.all(workers);return out}
-async function getTargetImage(){if(!targetImagePromise)targetImagePromise=(async()=>decodeBlob(await fetchBlob(TARGET_SRC)))();return targetImagePromise}
-async function renderZoomPreviewTone(){try{const image=$('zoomPreviewSource'),canvas=$('zoomPreviewTone');if(!image||!canvas||!result||!correctedContext)return;if(!image.complete||!image.naturalWidth)await new Promise((resolve,reject)=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',reject,{once:true})});const width=image.naturalWidth||500,height=image.naturalHeight||500,cols=5,rows=5;canvas.width=width;canvas.height=height;const sourceCanvas=document.createElement('canvas');sourceCanvas.width=width;sourceCanvas.height=height;const sourceContext=sourceCanvas.getContext('2d',{alpha:true,willReadFrequently:true});sourceContext.imageSmoothingEnabled=true;sourceContext.imageSmoothingQuality='high';sourceContext.drawImage(image,0,0,width,height);const source=sourceContext.getImageData(0,0,width,height),output=new ImageData(new Uint8ClampedArray(source.data),width,height);let normY=.40;const arrow=document.querySelector('.zoom-preview-arrow'),stage=$('stage');if(arrow&&stage){const ar=arrow.getBoundingClientRect(),sr=stage.getBoundingClientRect();if(ar.height>0&&sr.height>0){const arrowTipY=ar.top+ar.height*(16/36);normY=clamp((arrowTipY-sr.top)/sr.height,0,1)}}const startCol=Math.max(0,GRID_W-cols),startRow=clamp(Math.round(normY*GRID_H)-Math.floor(rows/2),0,Math.max(0,GRID_H-rows));function liveCellColour(col,row){const x=Math.round(col*TILE),y=Math.round(row*TILE),w=Math.max(1,Math.round(TILE)),h=Math.max(1,Math.round(TILE)),px=correctedContext.getImageData(x,y,Math.min(w,RENDER_WIDTH-x),Math.min(h,RENDER_HEIGHT-y)).data;let samples=[];for(let p=0;p<px.length;p+=4){const r=px[p],g=px[p+1],b=px[p+2],lum=.2126*r+.7152*g+.0722*b;if(lum<18)continue;samples.push([r,g,b,lum])}if(!samples.length)return[128,128,128];samples.sort((a,b)=>a[3]-b[3]);const lo=Math.floor(samples.length*.18),hi=Math.max(lo+1,Math.ceil(samples.length*.86)),mid=samples.slice(lo,hi);let r=0,g=0,b=0;for(const q of mid){r+=q[0];g+=q[1];b+=q[2]}return[r/mid.length,g/mid.length,b/mid.length]}const targets=[];for(let row=0;row<rows;row++)for(let col=0;col<cols;col++)targets.push(liveCellColour(startCol+col,startRow+row));const detailGain=.72;for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const x0=Math.round(col*width/cols),x1=Math.round((col+1)*width/cols),y0=Math.round(row*height/rows),y1=Math.round((row+1)*height/rows);let sr=0,sg=0,sb=0,sw=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const p=(y*width+x)*4;if(source.data[p+3]<32)continue;const r=source.data[p],g=source.data[p+1],b=source.data[p+2],lum=.2126*r+.7152*g+.0722*b,weight=lum<22?.28:1;sr+=r*weight;sg+=g*weight;sb+=b*weight;sw+=weight}if(!sw)continue;sr/=sw;sg/=sw;sb/=sw;const[tr,tg,tb]=targets[row*cols+col],targetLum=.2126*tr+.7152*tg+.0722*tb;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const p=(y*width+x)*4;if(source.data[p+3]<32)continue;const r=source.data[p],g=source.data[p+1],b=source.data[p+2],lum=.2126*r+.7152*g+.0722*b;let rr=tr+(r-sr)*detailGain,gg=tg+(g-sg)*detailGain,bb=tb+(b-sb)*detailGain;const mappedLum=.2126*rr+.7152*gg+.0722*bb,contrast=(lum-(.2126*sr+.7152*sg+.0722*sb))*.32,desiredLum=targetLum+contrast,delta=desiredLum-mappedLum;rr+=delta;gg+=delta;bb+=delta;output.data[p]=clamp(Math.round(rr),0,255);output.data[p+1]=clamp(Math.round(gg),0,255);output.data[p+2]=clamp(Math.round(bb),0,255)}}const out=canvas.getContext('2d',{alpha:true});out.clearRect(0,0,width,height);out.putImageData(output,0,0)}catch(e){console.warn('Kunne ikke matche zoom-preview til live-mosaikken:',e)}}
-async function buildTargetTiles(gridWidth,gridHeight){const key=gridWidth+'x'+gridHeight;if(targetTilesCache&&targetTilesKey===key)return targetTilesCache;const image=await getTargetImage();const target=document.createElement('canvas'),targetWidth=OVERVIEW_WIDTH,targetHeight=Math.round(OVERVIEW_WIDTH*gridHeight/gridWidth);target.width=targetWidth;target.height=targetHeight;const c=target.getContext('2d',{alpha:false,willReadFrequently:true});c.fillStyle='#343e42';c.fillRect(0,0,targetWidth,targetHeight);const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height;c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';const coverScale=Math.max(targetWidth/iw,targetHeight/ih),coverW=iw*coverScale,coverH=ih*coverScale;c.filter='blur(100px)';c.drawImage(image,(targetWidth-coverW)/2-120,(targetHeight-coverH)/2-120,coverW+240,coverH+240);c.filter='none';const containScale=Math.min(targetWidth/iw,targetHeight/ih),w=iw*containScale,h=ih*containScale;c.drawImage(image,(targetWidth-w)/2,(targetHeight-h)/2,w,h);c.restore();targetPreviewSurface=target;const cellW=targetWidth/gridWidth,cellH=targetHeight/gridHeight,scratch=document.createElement('canvas');scratch.width=scratch.height=PHOTO_SIZE;const sc=scratch.getContext('2d',{alpha:false,willReadFrequently:true});sc.imageSmoothingEnabled=true;sc.imageSmoothingQuality='high';const tiles=[];for(let row=0;row<gridHeight;row++)for(let col=0;col<gridWidth;col++){sc.clearRect(0,0,PHOTO_SIZE,PHOTO_SIZE);sc.drawImage(target,col*cellW,row*cellH,cellW,cellH,0,0,PHOTO_SIZE,PHOTO_SIZE);tiles.push(new Uint8ClampedArray(sc.getImageData(0,0,PHOTO_SIZE,PHOTO_SIZE).data))}targetTilesCache=tiles;targetTilesKey=key;return tiles}
+async function getTargetImage(){if(!targetImagePromise)targetImagePromise=(async()=>{targetImage=await decodeBlob(await fetchBlob(TARGET_SRC));return targetImage})();return targetImagePromise}
+async function getOverlayImage(){if(!overlayImagePromise)overlayImagePromise=(async()=>{overlayImage=await decodeBlob(await fetchBlob(OVERLAY_SRC));return overlayImage})();return overlayImagePromise}
+async function buildOverlayMask(gridWidth,gridHeight){
+  const [target,overlay]=await Promise.all([getTargetImage(),getOverlayImage()]);
+  if(target.naturalWidth!==overlay.naturalWidth||target.naturalHeight!==overlay.naturalHeight)throw Error('Target og overlay har forskellige dimensioner.');
+  const width=overlay.naturalWidth,height=overlay.naturalHeight,maskCanvas=document.createElement('canvas');
+  maskCanvas.width=width;maskCanvas.height=height;
+  const maskContext=maskCanvas.getContext('2d',{willReadFrequently:true});
+  maskContext.drawImage(overlay,0,0);
+  const rgba=maskContext.getImageData(0,0,width,height).data,mask=new Uint8Array(gridWidth*gridHeight).fill(1);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    if(rgba[(y*width+x)*4+3]<250)mask[Math.floor(y*gridHeight/height)*gridWidth+Math.floor(x*gridWidth/width)]=0;
+  }
+  maskCanvas.width=maskCanvas.height=0;
+  return mask;
+}
+async function buildTargetTiles(gridWidth,gridHeight){
+  const key=gridWidth+'x'+gridHeight;
+  if(targetTilesCache&&targetTilesKey===key)return targetTilesCache;
+  const image=await getTargetImage(),target=document.createElement('canvas');
+  const targetWidth=OVERVIEW_WIDTH,targetHeight=Math.round(OVERVIEW_WIDTH*image.naturalHeight/image.naturalWidth);
+  target.width=targetWidth;target.height=targetHeight;
+  const c=target.getContext('2d',{willReadFrequently:true});
+  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  c.drawImage(image,0,0,targetWidth,targetHeight);
+  const rgba=c.getImageData(0,0,targetWidth,targetHeight).data;
+  const cellW=targetWidth/gridWidth,cellH=targetHeight/gridHeight,scratch=document.createElement('canvas');
+  scratch.width=scratch.height=PHOTO_SIZE;
+  const sc=scratch.getContext('2d',{alpha:false,willReadFrequently:true});
+  sc.imageSmoothingEnabled=true;sc.imageSmoothingQuality='high';
+  const tiles=[];
+  for(let row=0;row<gridHeight;row++)for(let col=0;col<gridWidth;col++){
+    // Transparent target pixels are hidden by the overlay. Keep their white matte
+    // out of boundary tiles by borrowing the visible target colour in this cell.
+    const x0=Math.floor(col*cellW),x1=Math.ceil((col+1)*cellW),y0=Math.floor(row*cellH),y1=Math.ceil((row+1)*cellH);
+    let red=0,green=0,blue=0,weight=0;
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+      const p=(y*targetWidth+x)*4,a=rgba[p+3]/255;
+      red+=rgba[p]*a;green+=rgba[p+1]*a;blue+=rgba[p+2]*a;weight+=a;
+    }
+    sc.fillStyle=weight>0?'rgb('+Math.round(red/weight)+','+Math.round(green/weight)+','+Math.round(blue/weight)+')':'#fff';
+    sc.fillRect(0,0,PHOTO_SIZE,PHOTO_SIZE);
+    sc.drawImage(target,col*cellW,row*cellH,cellW,cellH,0,0,PHOTO_SIZE,PHOTO_SIZE);
+    tiles.push(new Uint8ClampedArray(sc.getImageData(0,0,PHOTO_SIZE,PHOTO_SIZE).data));
+  }
+  targetTilesCache=tiles;targetTilesKey=key;
+  return tiles;
+}
 
 function photoMosaicWorker(){
 'use strict';
 const S=40,BLOCKS=4,SUB=BLOCKS*BLOCKS,OVERVIEW_WIDTH=1600;
-let W=100,H=140,CELLS=W*H,OUT=16;
+let W=100,H=140,TOTAL_CELLS=W*H,CELLS=TOTAL_CELLS,OUT=16;
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 const mix=(a,b,t)=>a+(b-a)*t;
 const progress=(stage,value)=>self.postMessage({type:'progress',stage,value});
@@ -62,12 +126,47 @@ function describe(rgba,size){const plane=new Float32Array(size*size*3),blocks=ne
 function hamilton(weights,total=CELLS){if(!weights.length||weights.some(w=>!Number.isFinite(w)||w<0))throw Error('Invalid donor weights');const sum=weights.reduce((a,b)=>a+b,0);if(!(sum>0)||!Number.isFinite(sum))throw Error('Donation total must be positive and finite');const exact=weights.map(w=>w/sum*total),counts=exact.map(Math.floor),order=exact.map((q,i)=>({i,r:q-counts[i]})).sort((a,b)=>b.r-a.r||a.i-b.i),left=total-counts.reduce((a,b)=>a+b,0);for(let i=0;i<left;i++)counts[order[i].i]++;return counts}
 function score(source,target){const dL=source.mean[0]-target.mean[0],da=source.mean[1]-target.mean[1],db=source.mean[2]-target.mean[2];let structural=0,chromaticStructure=0;const gain=clamp(target.spatialStd/Math.max(.035,source.spatialStd),.55,1.3);for(let k=0;k<SUB;k++){const p=k*3,delta=(source.blocks[p]-source.mean[0])*gain-(target.blocks[p]-target.mean[0]);structural+=delta*delta;const ac=(source.blocks[p+1]-source.mean[1])*.75-(target.blocks[p+1]-target.mean[1]),bc=(source.blocks[p+2]-source.mean[2])*.75-(target.blocks[p+2]-target.mean[2]);chromaticStructure+=ac*ac+bc*bc}const edgeWeight=1+Math.min(2,target.spatialStd*12);return 1.7*dL*dL+4*(da*da+db*db)+8*edgeWeight*structural/SUB+2*chromaticStructure/SUB+.08*Math.pow(Math.max(0,source.std-.23),2)}
 function auction(cost,D,quotas){const owners=new Int32Array(CELLS).fill(-1),prices=new Float64Array(CELLS),slotDonor=new Int32Array(CELLS),heaps=[];let slot=0;for(let d=0;d<D;d++){const heap=[];for(let j=0;j<quotas[d];j++){heap.push(slot);slotDonor[slot++]=d}heaps.push(heap)}if(slot!==CELLS)throw Error('Quota conservation failed');let iterations=0;function sink(heap){let i=0;for(;;){const left=2*i+1;if(left>=heap.length)return;const right=left+1,child=right<heap.length&&prices[heap[right]]<prices[heap[left]]?right:left;if(prices[heap[i]]<=prices[heap[child]])return;[heap[i],heap[child]]=[heap[child],heap[i]];i=child}}for(const epsilon of[.015,.003,.0006]){owners.fill(-1);const queue=new Int32Array(CELLS+1);let head=0,tail=0,length=0,stageIterations=0;for(let i=0;i<CELLS;i++){queue[tail]=i;tail=(tail+1)%queue.length;length++}while(length){const cell=queue[head];head=(head+1)%queue.length;length--;let best=Infinity,second=Infinity,winningDonor=-1;const offset=cell*D;for(let d=0;d<D;d++){const heap=heaps[d];if(!heap.length)continue;const c=cost[offset+d],value=c+prices[heap[0]];if(value<best){second=best;best=value;winningDonor=d}else if(value<second)second=value;if(heap.length>1){const nextSlot=heap.length>2&&prices[heap[2]]<prices[heap[1]]?heap[2]:heap[1];second=Math.min(second,c+prices[nextSlot])}}if(winningDonor<0)throw Error('No assignment candidate');const heap=heaps[winningDonor],winningSlot=heap[0],displaced=owners[winningSlot];owners[winningSlot]=cell;prices[winningSlot]+=(Number.isFinite(second)?Math.max(0,second-best):0)+epsilon;sink(heap);if(displaced>=0){queue[tail]=displaced;tail=(tail+1)%queue.length;length++}iterations++;stageIterations++;if(stageIterations>Math.max(600000,CELLS*220))throw Error('Matching iteration limit exceeded. Use fewer distinct photos.');if(stageIterations%10000===0)progress('matcher',50+Math.min(15,iterations/10000))}}const result=new Int32Array(CELLS);for(let i=0;i<CELLS;i++)result[owners[i]]=slotDonor[i];return{assignments:result,iterations}}
-function spread(assignments,cost,D,seed){const random=randomGenerator(seed),neighbours=Array.from({length:CELLS},(_,i)=>{const x=i%W,y=Math.floor(i/W),result=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const dist=Math.abs(dx)+Math.abs(dy);if(!dist||dist>2||x+dx<0||x+dx>=W||y+dy<0||y+dy>=H)continue;result.push([(y+dy)*W+x+dx,dist===1?.030:.010])}return result});function penalty(cell,donor,except){let p=0;for(const[other,weight]of neighbours[cell])if(other!==except&&assignments[other]===donor)p+=weight;return p}let swaps=0;for(let pass=0;pass<5;pass++)for(let i=0;i<CELLS;i++)for(let attempt=0;attempt<20;attempt++){const j=Math.floor(random()*CELLS),a=assignments[i],b=assignments[j];if(a===b||i===j)continue;const change=cost[i*D+b]+cost[j*D+a]-cost[i*D+a]-cost[j*D+b]+penalty(i,b,j)+penalty(j,a,i)-penalty(i,a,j)-penalty(j,b,i);if(change<-1e-7){assignments[i]=b;assignments[j]=a;swaps++}}return swaps}
+function spread(assignments,cost,D,seed,cellIndices){const random=randomGenerator(seed),activeByFull=new Int32Array(TOTAL_CELLS).fill(-1);cellIndices.forEach((cell,i)=>activeByFull[cell]=i);const neighbours=Array.from({length:CELLS},(_,i)=>{const cell=cellIndices[i],x=cell%W,y=Math.floor(cell/W),result=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const dist=Math.abs(dx)+Math.abs(dy);if(!dist||dist>2||x+dx<0||x+dx>=W||y+dy<0||y+dy>=H)continue;const other=activeByFull[(y+dy)*W+x+dx];if(other>=0)result.push([other,dist===1?.030:.010])}return result});function penalty(cell,donor,except){let p=0;for(const[other,weight]of neighbours[cell])if(other!==except&&assignments[other]===donor)p+=weight;return p}let swaps=0;for(let pass=0;pass<5;pass++)for(let i=0;i<CELLS;i++)for(let attempt=0;attempt<20;attempt++){const j=Math.floor(random()*CELLS),a=assignments[i],b=assignments[j];if(a===b||i===j)continue;const change=cost[i*D+b]+cost[j*D+a]-cost[i*D+a]-cost[j*D+b]+penalty(i,b,j)+penalty(j,a,i)-penalty(i,a,j)-penalty(j,b,i);if(change<-1e-7){assignments[i]=b;assignments[j]=a;swaps++}}return swaps}
 function makeToneCurve(source,desiredMean,detail,targetSpatialStd){const goalStd=Math.min(.18,.030+detail*.100+Math.min(.035,targetSpatialStd*.25)),sourceMean=clamp(source.mean[0],.02,.98);let slope=clamp(goalStd/Math.max(.02,source.std)*sourceMean*(1-sourceMean)/Math.max(.03,desiredMean*(1-desiredMean)),.16,1.8);const logit=new Float64Array(256);for(let i=0;i<256;i++){const x=clamp(i/255,.001,.999);logit[i]=Math.log(x/(1-x))}let lut=new Float32Array(256);for(let round=0;round<3;round++){let lo=-18,hi=18;for(let iteration=0;iteration<18;iteration++){const b=(lo+hi)/2;let average=0;for(let i=0;i<256;i++)if(source.histogram[i])average+=source.histogram[i]/(1+Math.exp(-(slope*logit[i]+b)));if(average<desiredMean)lo=b;else hi=b}const bias=(lo+hi)/2;let variance=0;for(let i=0;i<256;i++){lut[i]=1/(1+Math.exp(-(slope*logit[i]+bias)));variance+=source.histogram[i]*(lut[i]-desiredMean)**2}if(round<2)slope=clamp(slope*goalStd/Math.max(.007,Math.sqrt(variance)),.12,2.0)}return lut}
 function rgbFromLab(L,a,b){const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;return[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s]}
 function gammaByte(value){const v=clamp(value,0,1);return Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055))}
-function render(targets,donors,assignments,variantChoice,params){const width=W*OUT,height=H*OUT,raw=new Uint8ClampedArray(width*height*4),output=new Uint8ClampedArray(raw.length),choices=new Uint8Array(CELLS),D=donors.length;let compressedPixels=0;const toneProfiles=new Float32Array(CELLS*263);for(let cell=0;cell<CELLS;cell++){const d=assignments[cell],v=variantChoice[cell*D+d];choices[cell]=v;const variant=donors[d].variants[v],source=variant.desc,target=targets[cell],targetL=clamp(target.mean[0]+.035*(1-target.mean[0])**2,.17,.93),desired=mix(source.mean[0],targetL,params.strength),curve=makeToneCurve(source,desired,params.detail,target.spatialStd),colourAmount=params.strength*(1-params.originalColour),desiredA=mix(source.mean[1],target.mean[1],colourAmount),desiredB=mix(source.mean[2],target.mean[2],colourAmount),chromaGain=mix(1,.72+params.originalColour*.28,params.strength),profileOffset=cell*263;toneProfiles.set(curve,profileOffset);toneProfiles.set([source.mean[1],source.mean[2],desiredA,desiredB,chromaGain,Math.min(1,params.strength*4),params.strength],profileOffset+256);const baseX=cell%W*OUT,baseY=Math.floor(cell/W)*OUT;for(let y=0;y<OUT;y++)for(let x=0;x<OUT;x++){const sourceY=Math.min(S-1,Math.floor((y+.5)*S/OUT)),sourceX=Math.min(S-1,Math.floor((x+.5)*S/OUT)),local=sourceY*S+sourceX,src=local*4,dst=((baseY+y)*width+baseX+x)*4;raw[dst]=variant.rgba[src];raw[dst+1]=variant.rgba[src+1];raw[dst+2]=variant.rgba[src+2];raw[dst+3]=255;if(params.strength<=0){output.set(raw.subarray(dst,dst+4),dst);continue}const t=source.plane[local*3]*255,ti=clamp(Math.floor(t),0,255),tj=Math.min(255,ti+1),L=mix(source.plane[local*3],mix(curve[ti],curve[tj],t-ti),Math.min(1,params.strength*4)),a=desiredA+chromaGain*(source.plane[local*3+1]-source.mean[1]),b=desiredB+chromaGain*(source.plane[local*3+2]-source.mean[2]);let rgb=rgbFromLab(L,a,b);if(rgb.some(c=>c<0||c>1)){compressedPixels++;let lower=0,upper=1;for(let k=0;k<7;k++){const mid=(lower+upper)/2,candidate=rgbFromLab(L,a*mid,b*mid);if(candidate.some(c=>c<0||c>1))upper=mid;else lower=mid}rgb=rgbFromLab(L,a*lower,b*lower)}output[dst]=gammaByte(rgb[0]);output[dst+1]=gammaByte(rgb[1]);output[dst+2]=gammaByte(rgb[2]);output[dst+3]=255}if(cell%160===0)progress('toner',76+22*cell/CELLS)}return{output,raw,choices,compressedPixels,toneProfiles}}
-self.onmessage=event=>{try{const started=performance.now(),data=event.data;W=Math.max(1,Math.round(Number(data.gridWidth)||100));H=Math.max(1,Math.round(Number(data.gridHeight)||140));CELLS=W*H;OUT=Math.max(16,Math.floor(OVERVIEW_WIDTH/W));if(!Array.isArray(data.targetTiles)||data.targetTiles.length!==CELLS)throw Error('Målmotivets grid matcher ikke render-grid.');const fullCounts=hamilton(data.donors.map(d=>d.weight)),activeIndices=fullCounts.map((n,i)=>n?i:-1).filter(i=>i>=0),donors=activeIndices.map(i=>data.donors[i]),quotas=activeIndices.map(i=>fullCounts[i]),D=donors.length;progress('analyserer',2);const targets=data.targetTiles.map(tile=>describe(tile,S));for(let d=0;d<D;d++){for(const variant of donors[d].variants)variant.desc=describe(variant.rgba,S);if(d%30===0)progress('analyserer',4+d/D*14)}const costs=new Float32Array(CELLS*D),variants=new Uint8Array(CELLS*D);for(let c=0;c<CELLS;c++){for(let d=0;d<D;d++){let best=Infinity,bestV=0;for(let v=0;v<donors[d].variants.length;v++){const value=score(donors[d].variants[v].desc,targets[c])+(v?.00035:0);if(value<best){best=value;bestV=v}}costs[c*D+d]=best;variants[c*D+d]=bestV}if(c%160===0)progress('sammenligner',20+c/CELLS*28)}progress('matcher',50);const allocation=auction(costs,D,quotas);progress('spreder',68);const swaps=spread(allocation.assignments,costs,D,data.seed||20260907),check=Array(D).fill(0);for(const d of allocation.assignments)check[d]++;if(check.some((n,i)=>n!==quotas[i]))throw Error('Donor quota changed during optimisation');const rendered=render(targets,donors,allocation.assignments,variants,data.params),assignmentIds=Array.from(allocation.assignments,d=>activeIndices[d]);self.postMessage({type:'complete',renderWidth:W*OUT,renderHeight:H*OUT,gridWidth:W,gridHeight:H,pixels:rendered.output,raw:rendered.raw,assignments:assignmentIds,choices:rendered.choices,toneProfiles:rendered.toneProfiles,counts:fullCounts,diagnostics:{iterations:allocation.iterations,swaps,seconds:(performance.now()-started)/1000,targetOverlayPixels:0,originalsProtected:!!data.params.preserveOriginals,effectiveToneStrength:data.params.strength,totalCells:CELLS,gridWidth:W,gridHeight:H,gamutCompressedFraction:rendered.compressedPixels/((W*OUT)*(H*OUT)),sourceCount:donors.length,zeroTileDonors:fullCounts.filter(n=>!n).length}},[rendered.output.buffer,rendered.raw.buffer,rendered.choices.buffer,rendered.toneProfiles.buffer])}catch(error){self.postMessage({type:'error',message:error.message,stack:error.stack})}}
+function render(targets,donors,assignments,variantChoice,params,cellIndices){const width=W*OUT,height=H*OUT,raw=new Uint8ClampedArray(width*height*4),output=new Uint8ClampedArray(raw.length),choices=new Uint8Array(TOTAL_CELLS),D=donors.length;let compressedPixels=0;const toneProfiles=new Float32Array(TOTAL_CELLS*263);for(let activeCell=0;activeCell<CELLS;activeCell++){const cell=cellIndices[activeCell],d=assignments[activeCell],v=variantChoice[activeCell*D+d];choices[cell]=v;const variant=donors[d].variants[v],source=variant.desc,target=targets[activeCell],targetL=clamp(target.mean[0]+.035*(1-target.mean[0])**2,.17,.93),desired=mix(source.mean[0],targetL,params.strength),curve=makeToneCurve(source,desired,params.detail,target.spatialStd),colourAmount=params.strength*(1-params.originalColour),desiredA=mix(source.mean[1],target.mean[1],colourAmount),desiredB=mix(source.mean[2],target.mean[2],colourAmount),chromaGain=mix(1,.72+params.originalColour*.28,params.strength),profileOffset=cell*263;toneProfiles.set(curve,profileOffset);toneProfiles.set([source.mean[1],source.mean[2],desiredA,desiredB,chromaGain,Math.min(1,params.strength*4),params.strength],profileOffset+256);const baseX=cell%W*OUT,baseY=Math.floor(cell/W)*OUT;for(let y=0;y<OUT;y++)for(let x=0;x<OUT;x++){const sourceY=Math.min(S-1,Math.floor((y+.5)*S/OUT)),sourceX=Math.min(S-1,Math.floor((x+.5)*S/OUT)),local=sourceY*S+sourceX,src=local*4,dst=((baseY+y)*width+baseX+x)*4;raw[dst]=variant.rgba[src];raw[dst+1]=variant.rgba[src+1];raw[dst+2]=variant.rgba[src+2];raw[dst+3]=255;if(params.strength<=0){output.set(raw.subarray(dst,dst+4),dst);continue}const t=source.plane[local*3]*255,ti=clamp(Math.floor(t),0,255),tj=Math.min(255,ti+1),L=mix(source.plane[local*3],mix(curve[ti],curve[tj],t-ti),Math.min(1,params.strength*4)),a=desiredA+chromaGain*(source.plane[local*3+1]-source.mean[1]),b=desiredB+chromaGain*(source.plane[local*3+2]-source.mean[2]);let rgb=rgbFromLab(L,a,b);if(rgb.some(c=>c<0||c>1)){compressedPixels++;let lower=0,upper=1;for(let k=0;k<7;k++){const mid=(lower+upper)/2,candidate=rgbFromLab(L,a*mid,b*mid);if(candidate.some(c=>c<0||c>1))upper=mid;else lower=mid}rgb=rgbFromLab(L,a*lower,b*lower)}output[dst]=gammaByte(rgb[0]);output[dst+1]=gammaByte(rgb[1]);output[dst+2]=gammaByte(rgb[2]);output[dst+3]=255}if(activeCell%160===0)progress('toner',76+22*activeCell/CELLS)}return{output,raw,choices,compressedPixels,toneProfiles}}
+self.onmessage=event=>{
+  try{
+    const started=performance.now(),data=event.data;
+    W=Math.max(1,Math.round(Number(data.gridWidth)||100));
+    H=Math.max(1,Math.round(Number(data.gridHeight)||140));
+    TOTAL_CELLS=W*H;
+    OUT=Math.max(16,Math.floor(OVERVIEW_WIDTH/W));
+    if(!Array.isArray(data.targetTiles)||data.targetTiles.length!==TOTAL_CELLS||!data.blockedMask||data.blockedMask.length!==TOTAL_CELLS)throw Error('Målmotivets grid og overlay-mask matcher ikke render-grid.');
+    const cellIndices=[];
+    for(let cell=0;cell<TOTAL_CELLS;cell++)if(!data.blockedMask[cell])cellIndices.push(cell);
+    CELLS=cellIndices.length;
+    if(!CELLS)throw Error('Overlay dækker alle felter.');
+    const fullCounts=hamilton(data.donors.map(d=>d.weight)),activeIndices=fullCounts.map((n,i)=>n?i:-1).filter(i=>i>=0),donors=activeIndices.map(i=>data.donors[i]),quotas=activeIndices.map(i=>fullCounts[i]),D=donors.length;
+    progress('analyserer',2);
+    const targets=cellIndices.map(cell=>describe(data.targetTiles[cell],S));
+    for(let d=0;d<D;d++){for(const variant of donors[d].variants)variant.desc=describe(variant.rgba,S);if(d%30===0)progress('analyserer',4+d/D*14)}
+    const costs=new Float32Array(CELLS*D),variants=new Uint8Array(CELLS*D);
+    for(let c=0;c<CELLS;c++){
+      for(let d=0;d<D;d++){
+        let best=Infinity,bestV=0;
+        for(let v=0;v<donors[d].variants.length;v++){const value=score(donors[d].variants[v].desc,targets[c])+(v?.00035:0);if(value<best){best=value;bestV=v}}
+        costs[c*D+d]=best;variants[c*D+d]=bestV;
+      }
+      if(c%160===0)progress('sammenligner',20+c/CELLS*28);
+    }
+    progress('matcher',50);
+    const allocation=auction(costs,D,quotas);
+    progress('spreder',68);
+    const swaps=spread(allocation.assignments,costs,D,data.seed||20260907,cellIndices),check=Array(D).fill(0);
+    for(const d of allocation.assignments)check[d]++;
+    if(check.some((n,i)=>n!==quotas[i]))throw Error('Donor quota changed during optimisation');
+    const rendered=render(targets,donors,allocation.assignments,variants,data.params,cellIndices),assignmentIds=Array(TOTAL_CELLS).fill(-1);
+    cellIndices.forEach((cell,i)=>assignmentIds[cell]=activeIndices[allocation.assignments[i]]);
+    self.postMessage({type:'complete',renderWidth:W*OUT,renderHeight:H*OUT,gridWidth:W,gridHeight:H,pixels:rendered.output,raw:rendered.raw,assignments:assignmentIds,choices:rendered.choices,toneProfiles:rendered.toneProfiles,counts:fullCounts,diagnostics:{iterations:allocation.iterations,swaps,seconds:(performance.now()-started)/1000,blockedCells:TOTAL_CELLS-CELLS,usableCellCount:CELLS,totalCells:TOTAL_CELLS,gridWidth:W,gridHeight:H,gamutCompressedFraction:rendered.compressedPixels/((W*OUT)*(H*OUT)),sourceCount:donors.length,zeroTileDonors:fullCounts.filter(n=>!n).length}},[rendered.output.buffer,rendered.raw.buffer,rendered.choices.buffer,rendered.toneProfiles.buffer]);
+  }catch(error){self.postMessage({type:'error',message:error.message,stack:error.stack})}
+}
 }
 
 function photoDetailWorker(){
@@ -90,25 +189,173 @@ function stopRender(){if(renderWorker){renderWorker.terminate();renderWorker=nul
 function clearDetails(){detailRevision++;detailWorker?.terminate();detailWorker=null;clearTimeout(detailTimer);for(const item of detailCache.values())item.bitmap.close();detailCache.clear();failedDetailKeys.clear();detailBytes=0;detailUnavailable=false;detailError=''}
 function resetDetailWorker(){clearDetails();if(!result)return;try{const worker=detailWorker=new Worker(detailWorkerURL),rev=detailRevision;worker.onmessage=e=>{const m=e.data;if(worker!==detailWorker||m.revision!==detailRevision||rev!==detailRevision){m.bitmap?.close();return}if(m.type==='detailError'){if(m.key)failedDetailKeys.add(m.key);else detailUnavailable=true;detailError=m.message;requestView(false);return}if(m.type!=='tile')return;if(detailCache.has(m.key)){const old=detailCache.get(m.key);old.bitmap.close();detailBytes-=old.bytes;detailCache.delete(m.key)}const bytes=m.size*m.size*4;detailCache.set(m.key,{bitmap:m.bitmap,bytes});detailBytes+=bytes;while(detailBytes>DETAIL_BUDGET&&detailCache.size>1){const k=detailCache.keys().next().value,item=detailCache.get(k);detailBytes-=item.bytes;item.bitmap.close();detailCache.delete(k)}requestView(false)};worker.onerror=()=>{detailUnavailable=true;detailError='Detaljezoom kunne ikke starte.';requestView(false)};worker.postMessage({type:'init',revision:rev,assignments:result.assignments,profiles:result.toneProfiles,sources:assets.map(a=>({blob:a.blob,width:a.width,height:a.height,matte:a.matte}))})}catch(e){detailUnavailable=true;detailError=e.message}}
 function renderDonorList(){if(!publication)return;const q=$('search').value.trim().toLocaleLowerCase('da-DK'),sort=$('sort').value;let rows=publication.donations.map((d,i)=>({d,i})).filter(x=>!q||x.d.name.toLocaleLowerCase('da-DK').includes(q));rows.sort((a,b)=>sort==='name'?a.d.name.localeCompare(b.d.name,'da'):(b.d.amount-a.d.amount)||a.d.name.localeCompare(b.d.name,'da'));$('listCount').textContent=rows.length+' af '+publication.donations.length;const list=$('donorList');list.replaceChildren();if(!rows.length){const p=document.createElement('div');p.className='empty-list';p.textContent='Ingen bidragydere matcher søgningen.';list.append(p);return}const frag=document.createDocumentFragment();for(const{d,i}of rows){const button=document.createElement('button');button.type='button';button.className='donor';const thumb=document.createElement('span');thumb.className='donor-thumb';thumb.style.background='rgb('+assets[i].matte.join(',')+')';const img=document.createElement('img');img.src=d.photo;img.alt='';thumb.append(img);const copy=document.createElement('span');copy.className='donor-copy';const strong=document.createElement('strong');strong.textContent=d.name;const small=document.createElement('small');small.textContent=money.format(d.amount)+' · '+donorFieldPercentText(i)+' af felterne';copy.append(strong,small);const arrow=document.createElement('span');arrow.className='arrow';arrow.textContent='›';button.append(thumb,copy,arrow);button.addEventListener('click',()=>openDonor(i));frag.append(button)}list.append(frag)}
-async function buildMosaic(pub,settings,gridWidth,gridHeight){stopRender();loadController=new AbortController();const signal=loadController.signal,first=!result;if(first)setBuildState('Bygger kunstværket…','Klargør mål og billeder.',2,true);else{$('status').textContent='Opdaterer kunstværket…';state.hidden=true}try{GRID_W=gridWidth;GRID_H=gridHeight;TOTAL=GRID_W*GRID_H;updatePhysicalInfo();const[target,prepared]=await Promise.all([buildTargetTiles(GRID_W,GRID_H),prepareAssets(pub.donations,signal)]);if(signal.aborted)return;assets=prepared;const donors=pub.donations.map((d,i)=>({id:d.id,weight:d.amount,variants:assets[i].variants})),worker=renderWorker=new Worker(mosaicWorkerURL);await new Promise((resolve,reject)=>{worker.onmessage=e=>{const m=e.data;if(worker!==renderWorker)return;if(m.type==='progress'){const labels={analyserer:'Analyserer billeder',sammenligner:'Matcher motivet',matcher:'Fordeler felter',spreder:'Skaber variation',toner:'Tilpasser lys og farver'};if(first)setBuildState('Bygger kunstværket…',(labels[m.stage]||m.stage)+'…',m.value,true);else $('status').textContent=(labels[m.stage]||m.stage)+'…';return}if(m.type==='error'){reject(Error(m.message));return}if(m.type==='complete'){result=m;RENDER_WIDTH=m.renderWidth;RENDER_HEIGHT=m.renderHeight;TILE=RENDER_WIDTH/GRID_W;correctedCanvas.width=rawCanvas.width=RENDER_WIDTH;correctedCanvas.height=rawCanvas.height=RENDER_HEIGHT;correctedContext=correctedCanvas.getContext('2d',{alpha:false});rawContext=rawCanvas.getContext('2d',{alpha:false});correctedContext.putImageData(new ImageData(m.pixels,RENDER_WIDTH,RENDER_HEIGHT),0,0);rawContext.putImageData(new ImageData(m.raw,RENDER_WIDTH,RENDER_HEIGHT),0,0);delete result.pixels;delete result.raw;renderWorker.terminate();renderWorker=null;resolve()}};worker.onerror=e=>reject(Error(e.message||'Render-motoren kunne ikke starte.'));worker.postMessage({donors,targetTiles:target,gridWidth:GRID_W,gridHeight:GRID_H,params:settings,seed:20260907})});if(signal.aborted)return;resetDetailWorker();renderDonorList();fitView();state.hidden=true;$('status').textContent='Opdateres automatisk';requestView()}catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke bygges.',e.message,0,true);$('status').textContent='Fejl: '+e.message}finally{loadController=null}}
+function renderCalculator(){
+  const grid=$('calculatorGrid');grid.replaceChildren();
+  const total=Number(publication?.total_amount);
+  for(const amount of [100,500,1000,10000]){
+    const item=document.createElement('div');item.className='calculator-item';
+    const label=document.createElement('strong');label.textContent=integer.format(amount)+' kr.';
+    const value=document.createElement('span');value.textContent=total>0&&USABLE>0?'ca. '+integer.format(Math.round(amount/total*USABLE))+' felter':'Afventer bidrag';
+    item.append(label,value);grid.append(item);
+  }
+}
+function renderAllDonors(){
+  const list=$('allDonorsList');list.replaceChildren();
+  const count=Number(publication.donation_count);
+  $('allDonorsCount').textContent=integer.format(Number.isFinite(count)?count:publication.donations.length)+' bidrag';
+  $('allDonorsTotal').textContent=money.format(Number(publication.total_amount)||0);
+  for(const[d,i]of publication.donations.map((d,i)=>[d,i])){
+    const button=document.createElement('button');button.type='button';button.className='all-donor';button.setAttribute('aria-label',d.name+', '+money.format(d.amount)+', '+integer.format(donorFieldCount(i))+' felter. Vis billede');
+    const thumb=document.createElement('span');thumb.className='all-donor-thumb';
+    const fallback=document.createElement('span');fallback.className='all-donor-thumb-fallback';fallback.textContent=d.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toLocaleUpperCase('da-DK')||'•';
+    const img=document.createElement('img');img.alt='';img.loading='lazy';img.decoding='async';
+    img.addEventListener('load',()=>{fallback.hidden=true});
+    img.addEventListener('error',()=>{img.hidden=true;fallback.hidden=false});
+    thumb.append(fallback,img);if(d.photo)img.src=d.photo;else img.hidden=true;
+    const info=document.createElement('span');info.className='all-donor-info';
+    const name=document.createElement('strong');name.textContent=d.name;
+    const meta=document.createElement('span');meta.className='all-donor-meta';
+    const amount=document.createElement('span');amount.textContent=money.format(d.amount);
+    const fields=document.createElement('span');fields.textContent=integer.format(donorFieldCount(i))+' felter';
+    meta.append(amount,fields);info.append(name,meta);button.append(thumb,info);
+    button.addEventListener('click',()=>{$('allDonors').close();openDonor(i,-1,$('showAll'))});
+    list.append(button);
+  }
+}
+async function buildMosaic(pub,settings,gridWidth,gridHeight){
+  stopRender();loadController=new AbortController();
+  const signal=loadController.signal,first=!result;
+  if(first)setBuildState('Bygger kunstværket…','Klargør mål og billeder.',2,true);
+  else{$('status').textContent='Opdaterer kunstværket…';state.hidden=true}
+  try{
+    GRID_W=gridWidth;GRID_H=gridHeight;TOTAL=GRID_W*GRID_H;
+    const[target,mask,prepared]=await Promise.all([buildTargetTiles(GRID_W,GRID_H),buildOverlayMask(GRID_W,GRID_H),prepareAssets(pub.donations,signal)]);
+    if(signal.aborted)return;
+    blockedMask=mask;BLOCKED=mask.reduce((sum,value)=>sum+value,0);USABLE=TOTAL-BLOCKED;updatePhysicalInfo();renderCalculator();
+    assets=prepared;
+    const donors=pub.donations.map((d,i)=>({id:d.id,weight:d.amount,variants:assets[i].variants})),worker=renderWorker=new Worker(mosaicWorkerURL);
+    await new Promise((resolve,reject)=>{
+      worker.onmessage=e=>{
+        const m=e.data;if(worker!==renderWorker)return;
+        if(m.type==='progress'){const labels={analyserer:'Analyserer billeder',sammenligner:'Matcher motivet',matcher:'Fordeler felter',spreder:'Skaber variation',toner:'Tilpasser lys og farver'};if(first)setBuildState('Bygger kunstværket…',(labels[m.stage]||m.stage)+'…',m.value,true);else $('status').textContent=(labels[m.stage]||m.stage)+'…';return}
+        if(m.type==='error'){reject(Error(m.message));return}
+        if(m.type==='complete'){
+          result=m;RENDER_WIDTH=m.renderWidth;RENDER_HEIGHT=m.renderHeight;TILE=RENDER_WIDTH/GRID_W;
+          correctedCanvas.width=rawCanvas.width=RENDER_WIDTH;correctedCanvas.height=rawCanvas.height=RENDER_HEIGHT;
+          correctedContext=correctedCanvas.getContext('2d');rawContext=rawCanvas.getContext('2d');
+          correctedContext.putImageData(new ImageData(m.pixels,RENDER_WIDTH,RENDER_HEIGHT),0,0);
+          rawContext.putImageData(new ImageData(m.raw,RENDER_WIDTH,RENDER_HEIGHT),0,0);
+          delete result.pixels;delete result.raw;
+          renderWorker.terminate();renderWorker=null;resolve();
+        }
+      };
+      worker.onerror=e=>reject(Error(e.message||'Render-motoren kunne ikke starte.'));
+      worker.postMessage({donors,targetTiles:target,blockedMask:mask,gridWidth:GRID_W,gridHeight:GRID_H,params:settings,seed:20260907});
+    });
+    if(signal.aborted)return;
+    if(result.counts.reduce((sum,count)=>sum+count,0)!==USABLE)throw Error('Donorfordelingen svarer ikke til antallet af brugbare felter.');
+    resetDetailWorker();renderDonorList();renderAllDonors();fitView();state.hidden=true;$('status').textContent='Opdateres automatisk';requestView();return true;
+  }catch(e){stopRender();console.error(e);if(!result)setBuildState('Kunstværket kunne ikke bygges.',e.message,0,true);$('status').textContent='Fejl: '+e.message;return false}
+  finally{loadController=null}
+}
 function metrics(){const r=canvas.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;view.width=r.width;view.height=r.height;view.dpr=Math.min(window.devicePixelRatio||1,2,2560/Math.max(r.width,r.height));const w=Math.max(1,Math.round(r.width*view.dpr)),h=Math.max(1,Math.round(r.height*view.dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}view.zoom=clamp(view.zoom,1,MAX_ZOOM);view.spanW=RENDER_WIDTH/view.zoom;view.spanH=RENDER_HEIGHT/view.zoom;const halfW=view.spanW/2,halfH=view.spanH/2;view.x=clamp(view.x,halfW,RENDER_WIDTH-halfW);view.y=clamp(view.y,halfH,RENDER_HEIGHT-halfH);view.left=view.x-halfW;view.top=view.y-halfH;view.scale=view.width/view.spanW;return true}
 function detailKey(cell,size){return detailRevision+':'+cell+':'+size+':0'}
-function visibleCells(){if(!result||view.zoom<=1.15)return[];const wanted=TILE*view.scale*view.dpr;if(wanted<=42)return[];const size=clamp(Math.ceil(wanted/32)*32,64,1024),cells=[],minX=clamp(Math.floor(view.left/TILE),0,GRID_W-1),minY=clamp(Math.floor(view.top/TILE),0,GRID_H-1),maxX=clamp(Math.floor((view.left+view.spanW-1e-7)/TILE),0,GRID_W-1),maxY=clamp(Math.floor((view.top+view.spanH-1e-7)/TILE),0,GRID_H-1);for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)cells.push({i:y*GRID_W+x,col:x,row:y,size,distance:(x*TILE+TILE/2-view.x)**2+(y*TILE+TILE/2-view.y)**2});return cells.sort((a,b)=>a.distance-b.distance)}
+function visibleCells(){if(!result||view.zoom<=1.15)return[];const wanted=TILE*view.scale*view.dpr;if(wanted<=42)return[];const size=clamp(Math.ceil(wanted/32)*32,64,1024),cells=[],minX=clamp(Math.floor(view.left/TILE),0,GRID_W-1),minY=clamp(Math.floor(view.top/TILE),0,GRID_H-1),maxX=clamp(Math.floor((view.left+view.spanW-1e-7)/TILE),0,GRID_W-1),maxY=clamp(Math.floor((view.top+view.spanH-1e-7)/TILE),0,GRID_H-1);for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const i=y*GRID_W+x;if(result.assignments[i]<0)continue;cells.push({i,col:x,row:y,size,distance:(x*TILE+TILE/2-view.x)**2+(y*TILE+TILE/2-view.y)**2})}return cells.sort((a,b)=>a.distance-b.distance)}
 function queueDetails(){if(!result||!detailWorker||document.hidden)return;const cells=visibleCells(),tasks=[],seen=new Set();for(const c of cells){const key=detailKey(c.i,c.size);if(detailCache.has(key)||failedDetailKeys.has(key)||seen.has(key))continue;seen.add(key);tasks.push({cell:c.i,size:c.size,raw:false,key})}detailWorker.postMessage({type:'view',revision:detailRevision,token:++detailViewToken,tasks})}
-function paint(){frame=null;if(!metrics())return;ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle='#ececea';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(result){ctx.drawImage(correctedCanvas,view.left,view.top,view.spanW,view.spanH,0,0,canvas.width,canvas.height);for(const c of visibleCells()){const item=detailCache.get(detailKey(c.i,c.size));if(!item)continue;const x=Math.round((c.col*TILE-view.left)/view.spanW*canvas.width),y=Math.round((c.row*TILE-view.top)/view.spanH*canvas.height),x1=Math.round(((c.col+1)*TILE-view.left)/view.spanW*canvas.width),y1=Math.round(((c.row+1)*TILE-view.top)/view.spanH*canvas.height);ctx.drawImage(item.bitmap,x,y,x1-x,y1-y)}}$('zoomValue').textContent=integer.format(Math.round(view.zoom*100))+'%';$('zoomRange').value=Math.round(Math.log(view.zoom)/Math.log(MAX_ZOOM)*100);$('zoomOut').disabled=!result||view.zoom<=1.001;$('zoomIn').disabled=!result||view.zoom>=MAX_ZOOM-.001;const cells=visibleCells(),ready=cells.filter(c=>detailCache.has(detailKey(c.i,c.size))).length;$('hint').textContent=detailUnavailable?(detailError||'Detaljezoom er ikke tilgængelig.'):(cells.length&&ready<cells.length?'Klargør skarpe kildedetaljer…':view.zoom>1.05?'Træk for at flytte. Klik et felt for at zoome til bidraget.':'Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.')}
+function paint(){
+  frame=null;if(!metrics())return;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  // Both web assets share exactly the same source rectangle and destination rectangle.
+  const artworkRect=targetImage?{
+    x:view.left/RENDER_WIDTH*targetImage.naturalWidth,
+    y:view.top/RENDER_HEIGHT*targetImage.naturalHeight,
+    width:view.spanW/RENDER_WIDTH*targetImage.naturalWidth,
+    height:view.spanH/RENDER_HEIGHT*targetImage.naturalHeight
+  }:null;
+  if(artworkRect)ctx.drawImage(targetImage,artworkRect.x,artworkRect.y,artworkRect.width,artworkRect.height,0,0,canvas.width,canvas.height);
+  if(result){
+    ctx.drawImage(correctedCanvas,view.left,view.top,view.spanW,view.spanH,0,0,canvas.width,canvas.height);
+    for(const c of visibleCells()){
+      const item=detailCache.get(detailKey(c.i,c.size));if(!item)continue;
+      const x=Math.round((c.col*TILE-view.left)/view.spanW*canvas.width),y=Math.round((c.row*TILE-view.top)/view.spanH*canvas.height),x1=Math.round(((c.col+1)*TILE-view.left)/view.spanW*canvas.width),y1=Math.round(((c.row+1)*TILE-view.top)/view.spanH*canvas.height);
+      ctx.drawImage(item.bitmap,x,y,x1-x,y1-y);
+    }
+  }
+  if(artworkRect&&overlayImage)ctx.drawImage(overlayImage,artworkRect.x,artworkRect.y,artworkRect.width,artworkRect.height,0,0,canvas.width,canvas.height);
+  $('zoomValue').textContent=integer.format(Math.round(view.zoom*100))+'%';
+  $('zoomRange').value=Math.round(Math.log(view.zoom)/Math.log(MAX_ZOOM)*100);
+  $('zoomOut').disabled=!result||view.zoom<=1.001;
+  $('zoomIn').disabled=!result||view.zoom>=MAX_ZOOM-.001;
+  const cells=visibleCells(),ready=cells.filter(c=>detailCache.has(detailKey(c.i,c.size))).length;
+  $('hint').textContent=detailUnavailable?(detailError||'Detaljezoom er ikke tilgængelig.'):(cells.length&&ready<cells.length?'Klargør skarpe kildedetaljer…':view.zoom>1.05?'Træk for at flytte. Klik et felt for at zoome til bidraget.':'Zoom ind for at se de enkelte billeder. Træk for at flytte rundt.');
+}
 function requestView(details=true){if(!frame)frame=requestAnimationFrame(paint);if(details){clearTimeout(detailTimer);detailTimer=setTimeout(queueDetails,110)}}
 function setZoom(next,ax=null,ay=null){if(!result||!metrics())return;const x=ax??view.width/2,y=ay??view.height/2,wx=view.left+x/view.width*view.spanW,wy=view.top+y/view.height*view.spanH;view.zoom=clamp(next,1,MAX_ZOOM);const spanW=RENDER_WIDTH/view.zoom,spanH=RENDER_HEIGHT/view.zoom;view.x=wx+(.5-x/view.width)*spanW;view.y=wy+(.5-y/view.height)*spanH;requestView()}
 function fitView(){view={...view,zoom:1,x:RENDER_WIDTH/2,y:RENDER_HEIGHT/2,spanW:RENDER_WIDTH,spanH:RENDER_HEIGHT};requestView()}
 function hit(clientX,clientY){if(!result||!metrics())return null;const r=canvas.getBoundingClientRect(),x=clientX-r.left,y=clientY-r.top;if(x<0||y<0||x>=r.width||y>=r.height)return null;const col=clamp(Math.floor((view.left+x/r.width*view.spanW)/TILE),0,GRID_W-1),row=clamp(Math.floor((view.top+y/r.height*view.spanH)/TILE),0,GRID_H-1),cell=row*GRID_W+col;return{cell,donor:result.assignments[cell],rect:r}}
 function showTooltip(e){if(pointers.size)return;const h=hit(e.clientX,e.clientY);if(!h||h.donor<0){tooltip.style.display='none';return}const d=publication.donations[h.donor];tooltip.textContent=d.name+' · '+money.format(d.amount)+' · '+donorFieldPercentText(h.donor)+' af felterne';tooltip.style.display='block';tooltip.style.left='0px';tooltip.style.top='0px';const box=tooltip.getBoundingClientRect(),margin=8,gap=14;let left=e.clientX+gap,top=e.clientY+gap;if(left+box.width>window.innerWidth-margin)left=e.clientX-box.width-gap;if(top+box.height>window.innerHeight-margin)top=e.clientY-box.height-gap;tooltip.style.left=Math.round(clamp(left,margin,Math.max(margin,window.innerWidth-box.width-margin)))+'px';tooltip.style.top=Math.round(clamp(top,margin,Math.max(margin,window.innerHeight-box.height-margin)))+'px'}
 function firstCell(donor){if(!result)return-1;for(let i=0;i<result.assignments.length;i++)if(result.assignments[i]===donor)return i;return-1}
-function openDonor(i,cell=-1){if(!publication||i<0)return;selectedDonor=i;selectedCell=cell>=0?cell:firstCell(i);const d=publication.donations[i],asset=assets[i];$('previewName').textContent=d.name;$('previewMeta').textContent=money.format(d.amount)+' · '+integer.format(result?.counts?.[i]||0)+' felter';$('previewWrap').style.background='rgb('+asset.matte.join(',')+')';$('previewImage').src=d.photo;$('previewImage').alt='Billede fra '+d.name;$('findTile').disabled=selectedCell<0;if(typeof preview.showModal==='function')preview.showModal();else preview.setAttribute('open','')}
+function openDonor(i,cell=-1,returnFocus=null){
+  if(!publication||i<0)return;
+  previewReturnFocus=returnFocus||document.activeElement;
+  selectedDonor=i;selectedCell=cell>=0?cell:firstCell(i);
+  const d=publication.donations[i],asset=assets[i];
+  $('previewName').textContent=d.name;
+  $('previewMeta').textContent=money.format(d.amount)+' · '+integer.format(result?.counts?.[i]||0)+' felter';
+  $('previewWrap').style.background='rgb('+(asset?.matte||[255,255,255]).join(',')+')';
+  $('previewImage').src=d.photo;$('previewImage').alt='Billede fra '+d.name;
+  $('findTile').disabled=selectedCell<0;
+  if(typeof preview.showModal==='function')preview.showModal();else preview.setAttribute('open','');
+  syncModalState();
+}
 function focusSelected(){if(selectedCell<0)return;preview.close?.();view.zoom=12;view.x=(selectedCell%GRID_W+.5)*TILE;view.y=(Math.floor(selectedCell/GRID_W)+.5)*TILE;requestView();setTimeout(()=>canvas.focus({preventScroll:false}),30)}
-async function loadPublication(force=false){clearTimeout(pollTimer);try{$('status').textContent='Henter seneste version…';const[dataResp,setResp]=await Promise.all([fetch(PUBLICATION_SRC+'?v='+Date.now(),{cache:'no-store'}),fetch(SETTINGS_SRC+'?v='+Date.now(),{cache:'no-store'}).catch(()=>null)]);if(!dataResp.ok)throw Error('public-mosaic.json: HTTP '+dataResp.status);const data=await dataResp.json();let settingsData=DEFAULT_SETTINGS;if(setResp&&setResp.ok){try{settingsData={...DEFAULT_SETTINGS,...await setResp.json()}}catch{}}if(!Array.isArray(data.donations))throw Error('Ugyldig datafil.');const donations=data.donations.filter(d=>d&&d.photo&&Number(d.amount)>0).map(d=>({id:String(d.id??''),name:String(d.name||'Anonym'),amount:Number(d.amount)||0,photo:String(d.photo),created_at:String(d.created_at||'')})).sort((a,b)=>a.id.localeCompare(b.id)),grid=gridFrom(settingsData),next=hashText(JSON.stringify({donations:donations.map(d=>[d.id,d.name,d.amount,d.photo]),settings:{tone_strength:settingsData.tone_strength,photo_detail:settingsData.photo_detail,original_colour:settingsData.original_colour,grid_width:grid.width,grid_height:grid.height}}));publication={...data,donations};$('updated').textContent=data.updated_at?'Senest opdateret '+fmtDate(data.updated_at):'Senest opdateret';$('total').textContent=money.format(donations.reduce((s,d)=>s+d.amount,0));if(!donations.length){stopRender();GRID_W=grid.width;GRID_H=grid.height;TOTAL=GRID_W*GRID_H;updatePhysicalInfo();publication={...data,donations};result=null;assets=[];clearDetails();renderDonorList();setBuildState('Kunstværket venter på de første bidrag.','Kom tilbage snart.',0,true);requestView();schedulePoll();return}if(!force&&signature===next){$('status').textContent='Opdateret';schedulePoll();return}signature=next;await buildMosaic(publication,settingsFrom(settingsData),grid.width,grid.height);schedulePoll();reportHeight()}catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke indlæses.','Prøv igen om et øjeblik.',0,true);$('status').textContent='Forbindelsesfejl';schedulePoll(15000)}}
+async function loadPublication(force=false){
+  clearTimeout(pollTimer);
+  try{
+    $('status').textContent='Henter seneste version…';
+    const[dataResp,setResp]=await Promise.all([fetch(PUBLICATION_SRC+'?v='+Date.now(),{cache:'no-store'}),fetch(SETTINGS_SRC+'?v='+Date.now(),{cache:'no-store'}).catch(()=>null)]);
+    if(!dataResp.ok)throw Error('public-mosaic.json: HTTP '+dataResp.status);
+    const data=await dataResp.json();
+    let settingsData=DEFAULT_SETTINGS;
+    if(setResp&&setResp.ok){try{settingsData={...DEFAULT_SETTINGS,...await setResp.json()}}catch{}}
+    if(!Array.isArray(data.donations))throw Error('Ugyldig datafil.');
+    const donations=data.donations.map(d=>({id:String(d.id??''),name:String(d.name||'Anonym'),amount:Number(d.amount)||0,photo:String(d.photo||''),created_at:String(d.created_at||'')})).sort((a,b)=>a.id.localeCompare(b.id)),grid=gridFrom(settingsData),next=hashText(JSON.stringify({donations:donations.map(d=>[d.id,d.name,d.amount,d.photo]),settings:{tone_strength:settingsData.tone_strength,photo_detail:settingsData.photo_detail,original_colour:settingsData.original_colour,grid_width:grid.width,grid_height:grid.height}}));
+    publication={...data,donations};
+    $('updated').textContent=data.updated_at?'Senest opdateret '+fmtDate(data.updated_at):'Senest opdateret';
+    $('total').textContent=money.format(Number(data.total_amount)||0);
+    $('donationCount').textContent=integer.format(Number(data.donation_count)||donations.length)+' bidrag';
+    renderCalculator();
+    if(!donations.length){
+      stopRender();GRID_W=grid.width;GRID_H=grid.height;TOTAL=GRID_W*GRID_H;
+      const[,mask]=await Promise.all([buildTargetTiles(GRID_W,GRID_H),buildOverlayMask(GRID_W,GRID_H)]);
+      blockedMask=mask;BLOCKED=mask.reduce((sum,value)=>sum+value,0);USABLE=TOTAL-BLOCKED;updatePhysicalInfo();renderCalculator();
+      result=null;assets=[];clearDetails();renderDonorList();renderAllDonors();state.hidden=true;$('status').textContent='Afventer de første bidrag';fitView();schedulePoll();reportHeight();return;
+    }
+    if(!force&&signature===next&&result){$('status').textContent='Opdateret';renderCalculator();schedulePoll();return}
+    if(await buildMosaic(publication,settingsFrom(settingsData),grid.width,grid.height))signature=next;
+    schedulePoll();reportHeight();
+  }catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke indlæses.','Prøv igen om et øjeblik.',0,true);$('status').textContent='Forbindelsesfejl';schedulePoll(15000)}
+}
 function schedulePoll(delay=POLL_MS){clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(()=>loadPublication(false),delay)}
-$('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});
+function startCountdown(){
+  const deadline=Date.parse('2026-11-09T23:59:00+01:00');
+  function render(){
+    const remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));
+    $('countdownDays').textContent=String(Math.floor(remaining/86400));
+    $('countdownHours').textContent=String(Math.floor(remaining/3600)%24).padStart(2,'0');
+    $('countdownMinutes').textContent=String(Math.floor(remaining/60)%60).padStart(2,'0');
+    $('countdownSeconds').textContent=String(remaining%60).padStart(2,'0');
+    if(!remaining)$('countdownTitle').textContent='INDSAMLINGEN ER SLUT';
+    return remaining>0;
+  }
+  if(render()){const interval=setInterval(()=>{if(!render())clearInterval(interval)},1000)}
+}
+$('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});preview.addEventListener('close',()=>{syncModalState();previewReturnFocus?.focus({preventScroll:true});previewReturnFocus=null});$('showAll').addEventListener('click',()=>{renderAllDonors();$('allDonors').showModal();syncModalState();$('closeAll').focus()});$('closeAll').addEventListener('click',()=>$('allDonors').close());$('allDonors').addEventListener('click',e=>{if(e.target===$('allDonors'))$('allDonors').close()});$('allDonors').addEventListener('close',()=>{syncModalState();if(!preview.open)$('showAll').focus({preventScroll:true})});
 canvas.addEventListener('pointerdown',e=>{if(!result||(e.pointerType==='mouse'&&e.button!==0))return;canvas.focus({preventScroll:true});tooltip.style.display='none';if(!pointers.size){moved=false;pointerOrigin={x:e.clientX,y:e.clientY}}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{canvas.setPointerCapture(e.pointerId)}catch{}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){showTooltip(e);return}if(!metrics())return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerOrigin&&Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>4)moved=true;if(moved){view.x-=(e.clientX-prev.x)/view.scale;view.y-=(e.clientY-prev.y)/view.scale;canvas.classList.add('dragging');requestView()}});function endPointer(e,cancelled){if(!pointers.has(e.pointerId))return;pointers.delete(e.pointerId);try{canvas.releasePointerCapture(e.pointerId)}catch{}if(!pointers.size){canvas.classList.remove('dragging');if(!cancelled&&!moved){const h=hit(e.clientX,e.clientY);if(h&&h.donor>=0)openDonor(h.donor,h.cell)}moved=false;pointerOrigin=null}}canvas.addEventListener('pointerup',e=>endPointer(e,false));canvas.addEventListener('pointercancel',e=>endPointer(e,true));canvas.addEventListener('pointerleave',()=>{if(!pointers.size)tooltip.style.display='none'});canvas.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();const r=canvas.getBoundingClientRect(),delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?r.height:1);setZoom(view.zoom*Math.exp(-clamp(delta,-500,500)*.002),e.clientX-r.left,e.clientY-r.top)},{passive:false});canvas.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){e.preventDefault();setZoom(view.zoom*1.5)}else if(e.key==='-'||e.key==='_'){e.preventDefault();setZoom(view.zoom/1.5)}else if(e.key==='Home'){e.preventDefault();fitView()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(pollTimer);else loadPublication(false)});window.addEventListener('resize',()=>{requestView();reportHeight()});if('ResizeObserver'in window)new ResizeObserver(()=>{requestView();reportHeight()}).observe($('app'));window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);stopRender();clearDetails()});
-function reportHeight(){if(window.parent===window)return;const app=$('app');if(!app)return;let origin='*';try{if(document.referrer)origin=new URL(document.referrer).origin}catch{}const height=Math.ceil(app.getBoundingClientRect().height);window.parent.postMessage({type:'charity-mosaic-height',height},origin)}
-configureDonateLink();updatePhysicalInfo();loadPublication(true);
+function reportHeight(){const app=$('app');if(!app)return;const height=Math.ceil(app.getBoundingClientRect().height);postToParent({type:'charity-mosaic-height',height})}
+startCountdown();configureDonateLink();updatePhysicalInfo();renderCalculator();loadPublication(true);
 })();
