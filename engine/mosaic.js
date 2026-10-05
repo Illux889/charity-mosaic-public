@@ -14,8 +14,7 @@ function parentOrigin(){try{if(document.referrer){const origin=new URL(document.
 function postToParent(message){if(window.parent!==window)window.parent.postMessage(message,parentOrigin())}
 let parentViewportHeight=null,parentViewportWidth=null;
 function fitArtworkToViewport(height){
-  const stageTop=$('stage').getBoundingClientRect().top-$('app').getBoundingClientRect().top;
-  const artworkHeight=Math.min(height*.72,Math.max(1,height-stageTop-16));
+  const artworkHeight=Math.max(1,height-80);
   document.documentElement.style.setProperty('--artwork-max-width',artworkHeight*GRID_WIDTH/GRID_HEIGHT+'px');
 }
 window.addEventListener('message',event=>{
@@ -23,6 +22,10 @@ window.addEventListener('message',event=>{
   const origin=parentOrigin();
   if(origin!=='*'&&event.origin!==origin)return;
   const data=event.data;
+  if(data?.type==='charity-mosaic-find-donor'){
+    if(Number.isInteger(data.index))findDonor(data.index);
+    return;
+  }
   if(data?.type!=='charity-mosaic-viewport'||typeof data.width!=='number'||typeof data.height!=='number'||!Number.isFinite(data.width)||!Number.isFinite(data.height)||data.width<=0||data.height<=0)return;
   if(parentViewportHeight===data.height&&parentViewportWidth===data.width)return;
   parentViewportHeight=data.height;
@@ -235,7 +238,7 @@ function renderAllDonors(){
     const amount=document.createElement('span');amount.textContent=money.format(d.amount);
     const fields=document.createElement('span');fields.textContent=integer.format(donorFieldCount(i))+' felter';
     meta.append(amount,fields);info.append(name,meta);button.append(thumb,info);
-    button.addEventListener('click',()=>{$('allDonors').close();openDonor(i,-1,$('showAll'))});
+    button.addEventListener('click',()=>{$('allDonors').close();if(window.parent!==window)syncModalState();openDonor(i,-1,$('showAll'))});
     list.append(button);
   }
 }
@@ -315,11 +318,20 @@ function fitView(){view={...view,zoom:1,x:RENDER_WIDTH/2,y:RENDER_HEIGHT/2,spanW
 function hit(clientX,clientY){if(!result||!metrics())return null;const r=canvas.getBoundingClientRect(),x=clientX-r.left,y=clientY-r.top;if(x<0||y<0||x>=r.width||y>=r.height)return null;const col=clamp(Math.floor((view.left+x/r.width*view.spanW)/TILE),0,GRID_W-1),row=clamp(Math.floor((view.top+y/r.height*view.spanH)/TILE),0,GRID_H-1),cell=row*GRID_W+col;return{cell,donor:result.assignments[cell],rect:r}}
 function showTooltip(e){if(pointers.size)return;const h=hit(e.clientX,e.clientY);if(!h||h.donor<0){tooltip.style.display='none';return}const d=publication.donations[h.donor];tooltip.textContent=d.name+' · '+money.format(d.amount)+' · '+donorFieldPercentText(h.donor)+' af felterne';tooltip.style.display='block';tooltip.style.left='0px';tooltip.style.top='0px';const box=tooltip.getBoundingClientRect(),margin=8,gap=14;let left=e.clientX+gap,top=e.clientY+gap;if(left+box.width>window.innerWidth-margin)left=e.clientX-box.width-gap;if(top+box.height>window.innerHeight-margin)top=e.clientY-box.height-gap;tooltip.style.left=Math.round(clamp(left,margin,Math.max(margin,window.innerWidth-box.width-margin)))+'px';tooltip.style.top=Math.round(clamp(top,margin,Math.max(margin,window.innerHeight-box.height-margin)))+'px'}
 function firstCell(donor){if(!result)return-1;for(let i=0;i<result.assignments.length;i++)if(result.assignments[i]===donor)return i;return-1}
-function openDonor(i,cell=-1,returnFocus=null){
-  if(!publication||i<0)return;
-  previewReturnFocus=returnFocus||document.activeElement;
+function selectDonor(i,cell=-1){
+  if(!publication||!Number.isInteger(i)||i<0||i>=publication.donations.length)return false;
   selectedDonor=i;selectedCell=cell>=0?cell:firstCell(i);
-  const d=publication.donations[i],asset=assets[i];
+  return true;
+}
+function openDonor(i,cell=-1,returnFocus=null){
+  if(!selectDonor(i,cell))return;
+  const d=publication.donations[i];
+  if(window.parent!==window){
+    postToParent({type:'charity-mosaic-open-donor',donor:{name:d.name,amount:d.amount,fields:Number(result?.counts?.[i]||0),photo:d.photo,index:i}});
+    return;
+  }
+  previewReturnFocus=returnFocus||document.activeElement;
+  const asset=assets[i];
   $('previewName').textContent=d.name;
   $('previewMeta').textContent=money.format(d.amount)+' · '+integer.format(result?.counts?.[i]||0)+' felter';
   $('previewWrap').style.background='rgb('+(asset?.matte||[255,255,255]).join(',')+')';
@@ -329,6 +341,7 @@ function openDonor(i,cell=-1,returnFocus=null){
   syncModalState();
 }
 function focusSelected(){if(selectedCell<0)return;preview.close?.();view.zoom=12;view.x=(selectedCell%GRID_W+.5)*TILE;view.y=(Math.floor(selectedCell/GRID_W)+.5)*TILE;requestView();setTimeout(()=>canvas.focus({preventScroll:false}),30)}
+function findDonor(index){if(selectDonor(index))focusSelected()}
 async function loadPublication(force=false){
   clearTimeout(pollTimer);
   try{
