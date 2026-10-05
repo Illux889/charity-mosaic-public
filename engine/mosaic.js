@@ -214,9 +214,8 @@ function renderCalculator(){
   const total=Number(publication?.total_amount);
   for(const amount of [100,500,1000,10000]){
     const item=document.createElement('div');item.className='calculator-item';
-    const label=document.createElement('strong');label.textContent=integer.format(amount)+' kr.';
-    const value=document.createElement('span');value.textContent=total>0&&USABLE>0?'ca. '+integer.format(Math.round(amount/total*USABLE))+' felter':'Afventer bidrag';
-    item.append(label,value);grid.append(item);
+    item.textContent=integer.format(amount)+' kr. → '+(total>0&&USABLE>0?'ca. '+integer.format(Math.round(amount/total*USABLE))+' felter':'Afventer bidrag');
+    grid.append(item);
   }
 }
 function renderAllDonors(){
