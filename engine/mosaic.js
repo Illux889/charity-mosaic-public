@@ -12,6 +12,23 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 $('viewer').appendChild(tooltip);
 function parentOrigin(){try{if(document.referrer){const origin=new URL(document.referrer).origin;if(origin!=='null')return origin}}catch{}return'*'}
 function postToParent(message){if(window.parent!==window)window.parent.postMessage(message,parentOrigin())}
+let parentViewportHeight=null,parentViewportWidth=null;
+function fitArtworkToViewport(height){
+  const stageTop=$('stage').getBoundingClientRect().top-$('app').getBoundingClientRect().top;
+  const artworkHeight=Math.min(height*.72,Math.max(1,height-stageTop-16));
+  document.documentElement.style.setProperty('--artwork-max-width',artworkHeight*GRID_WIDTH/GRID_HEIGHT+'px');
+}
+window.addEventListener('message',event=>{
+  if(event.source!==window.parent)return;
+  const origin=parentOrigin();
+  if(origin!=='*'&&event.origin!==origin)return;
+  const data=event.data;
+  if(data?.type!=='charity-mosaic-viewport'||typeof data.width!=='number'||typeof data.height!=='number'||!Number.isFinite(data.width)||!Number.isFinite(data.height)||data.width<=0||data.height<=0)return;
+  if(parentViewportHeight===data.height&&parentViewportWidth===data.width)return;
+  parentViewportHeight=data.height;
+  parentViewportWidth=data.width;
+  requestAnimationFrame(()=>{fitArtworkToViewport(parentViewportHeight);requestView();reportHeight()});
+});
 function configureDonateLink(){
 const link=$('donateCta');if(!link)return;
 const label=link.querySelector('span');if(label)label.textContent='Donér';
@@ -355,7 +372,8 @@ function startCountdown(){
 }
 $('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});preview.addEventListener('close',()=>{syncModalState();previewReturnFocus?.focus({preventScroll:true});previewReturnFocus=null});$('showAll').addEventListener('click',()=>{renderAllDonors();$('allDonors').showModal();syncModalState();$('closeAll').focus()});$('closeAll').addEventListener('click',()=>$('allDonors').close());$('allDonors').addEventListener('click',e=>{if(e.target===$('allDonors'))$('allDonors').close()});$('allDonors').addEventListener('close',()=>{syncModalState();if(!preview.open)$('showAll').focus({preventScroll:true})});
 canvas.addEventListener('pointerdown',e=>{if(!result||(e.pointerType==='mouse'&&e.button!==0))return;canvas.focus({preventScroll:true});tooltip.style.display='none';if(!pointers.size){moved=false;pointerOrigin={x:e.clientX,y:e.clientY}}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{canvas.setPointerCapture(e.pointerId)}catch{}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){showTooltip(e);return}if(!metrics())return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerOrigin&&Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>4)moved=true;if(moved){view.x-=(e.clientX-prev.x)/view.scale;view.y-=(e.clientY-prev.y)/view.scale;canvas.classList.add('dragging');requestView()}});function endPointer(e,cancelled){if(!pointers.has(e.pointerId))return;pointers.delete(e.pointerId);try{canvas.releasePointerCapture(e.pointerId)}catch{}if(!pointers.size){canvas.classList.remove('dragging');if(!cancelled&&!moved){const h=hit(e.clientX,e.clientY);if(h&&h.donor>=0)openDonor(h.donor,h.cell)}moved=false;pointerOrigin=null}}canvas.addEventListener('pointerup',e=>endPointer(e,false));canvas.addEventListener('pointercancel',e=>endPointer(e,true));canvas.addEventListener('pointerleave',()=>{if(!pointers.size)tooltip.style.display='none'});canvas.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();const r=canvas.getBoundingClientRect(),delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?r.height:1);setZoom(view.zoom*Math.exp(-clamp(delta,-500,500)*.002),e.clientX-r.left,e.clientY-r.top)},{passive:false});canvas.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){e.preventDefault();setZoom(view.zoom*1.5)}else if(e.key==='-'||e.key==='_'){e.preventDefault();setZoom(view.zoom/1.5)}else if(e.key==='Home'){e.preventDefault();fitView()}});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(pollTimer);else loadPublication(false)});window.addEventListener('resize',()=>{requestView();reportHeight()});if('ResizeObserver'in window)new ResizeObserver(()=>{requestView();reportHeight()}).observe($('app'));window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);stopRender();clearDetails()});
-function reportHeight(){const app=$('app');if(!app)return;const height=Math.ceil(app.getBoundingClientRect().height);postToParent({type:'charity-mosaic-height',height})}
-startCountdown();configureDonateLink();updatePhysicalInfo();renderCalculator();loadPublication(true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(pollTimer);else loadPublication(false)});window.addEventListener('resize',()=>{fitArtworkToViewport(parentViewportHeight??window.innerHeight);requestView();reportHeight()});if('ResizeObserver'in window)new ResizeObserver(()=>{requestView();reportHeight()}).observe($('app'));window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);stopRender();clearDetails()});
+let lastReportedHeight=null;
+function reportHeight(){const app=$('app');if(!app)return;const height=Math.ceil(app.getBoundingClientRect().height);if(height===lastReportedHeight)return;lastReportedHeight=height;postToParent({type:'charity-mosaic-height',height})}
+fitArtworkToViewport(window.innerHeight);startCountdown();configureDonateLink();updatePhysicalInfo();renderCalculator();loadPublication(true);
 })();
