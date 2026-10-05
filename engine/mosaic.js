@@ -212,7 +212,7 @@ function renderDonorList(){if(!publication)return;const q=$('search').value.trim
 function renderCalculator(){
   const grid=$('calculatorGrid');grid.replaceChildren();
   const total=Number(publication?.total_amount);
-  for(const amount of [100,500,1000,10000]){
+  for(const amount of [100,1000,5000,10000]){
     const item=document.createElement('div');item.className='calculator-item';
     item.textContent=integer.format(amount)+' kr. → '+(total>0&&USABLE>0?'ca. '+integer.format(Math.round(amount/total*USABLE))+' felter':'Afventer bidrag');
     grid.append(item);
