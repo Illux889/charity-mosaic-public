@@ -1,8 +1,8 @@
 {
-  "version": 5,
-  "updated_at": "2026-10-06T08:54:12.333Z",
-  "total_amount": 160500,
-  "donation_count": 7,
+  "version": 4,
+  "updated_at": "2026-10-06T08:55:44.951Z",
+  "total_amount": 160000,
+  "donation_count": 6,
   "donations": [
     {
       "id": "23",
@@ -12,13 +12,6 @@
       "created_at": "2026-09-21T13:24:28.085Z"
     },
     {
-      "id": "24",
-      "name": "Elefantprint",
-      "amount": 40000,
-      "photo": "https://5bdacnc6s2.ucarecd.net/1c57a3d4-fa54-40f9-a7a0-a8af9082d2fe/Skrmbillede20260922kl144355.png",
-      "created_at": "2026-09-22T12:51:36.621Z"
-    },
-    {
       "id": "25",
       "name": "ILLUX A/S",
       "amount": 30000,
@@ -26,11 +19,11 @@
       "created_at": "2026-09-22T12:51:44.379Z"
     },
     {
-      "id": "27",
-      "name": "Xprint",
-      "amount": 5000,
-      "photo": "https://5bdacnc6s2.ucarecd.net/d2031229-a59e-4c7e-80dc-322c08780ff8/Skrmbillede20260922kl151021.png",
-      "created_at": "2026-09-23T08:56:12.862Z"
+      "id": "24",
+      "name": "Elefantprint",
+      "amount": 40000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/1c57a3d4-fa54-40f9-a7a0-a8af9082d2fe/Skrmbillede20260922kl144355.png",
+      "created_at": "2026-09-22T12:51:36.621Z"
     },
     {
       "id": "28",
@@ -40,18 +33,18 @@
       "created_at": "2026-09-23T08:56:13.682Z"
     },
     {
+      "id": "27",
+      "name": "Xprint",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/d2031229-a59e-4c7e-80dc-322c08780ff8/Skrmbillede20260922kl151021.png",
+      "created_at": "2026-09-23T08:56:12.862Z"
+    },
+    {
       "id": "32",
       "name": "Jimmy Jensen",
       "amount": 40000,
       "photo": "https://5bdacnc6s2.ucarecd.net/7111bbca-0a1e-4c04-99bb-fce158a4b231/2ea048b875052b305d3a67a035bc6ba3.jpg",
       "created_at": "2026-10-06T07:13:18.523Z"
-    },
-    {
-      "id": "33",
-      "name": "Jimmy Jenen",
-      "amount": 500,
-      "photo": "https://5bdacnc6s2.ucarecd.net/5d80e329-215a-4ef1-8928-858c152400b3/PLACEHOLDERkopiside1.png",
-      "created_at": "2026-10-06T08:46:53.662Z"
     }
   ]
 }
