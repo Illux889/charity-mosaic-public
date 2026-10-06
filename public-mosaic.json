@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-06T12:25:24.438Z",
-  "total_amount": 160000,
-  "donation_count": 6,
+  "updated_at": "2026-10-06T12:25:26.087Z",
+  "total_amount": 200000,
+  "donation_count": 7,
   "donations": [
     {
       "id": "35",
@@ -10,6 +10,13 @@
       "amount": 40000,
       "photo": "https://5bdacnc6s2.ucarecd.net/489997bb-c7fb-4af9-9143-c54205644618/mehrpouyahXT0kOwrlENYunsplash.jpg",
       "created_at": "2026-10-06T10:05:56.742Z"
+    },
+    {
+      "id": "36",
+      "name": "Jimmy Jensen",
+      "amount": 40000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/1966ede7-6bb2-4f3d-a995-55b38942b7f8/hund.jpg",
+      "created_at": "2026-10-06T12:25:13.454Z"
     },
     {
       "id": "37",
