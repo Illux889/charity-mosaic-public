@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-06T12:21:05.122Z",
-  "total_amount": 40000,
-  "donation_count": 1,
+  "updated_at": "2026-10-06T12:25:17.472Z",
+  "total_amount": 80000,
+  "donation_count": 2,
   "donations": [
     {
       "id": "35",
@@ -10,6 +10,13 @@
       "amount": 40000,
       "photo": "https://5bdacnc6s2.ucarecd.net/489997bb-c7fb-4af9-9143-c54205644618/mehrpouyahXT0kOwrlENYunsplash.jpg",
       "created_at": "2026-10-06T10:05:56.742Z"
+    },
+    {
+      "id": "41",
+      "name": "Illux A/S",
+      "amount": 40000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/f44be4a9-62fe-46b5-a125-04beab62f21c/illux.png",
+      "created_at": "2026-10-06T12:25:15.655Z"
     }
   ]
 }
