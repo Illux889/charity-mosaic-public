@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-06T12:25:21.025Z",
-  "total_amount": 150000,
-  "donation_count": 4,
+  "updated_at": "2026-10-06T12:25:22.723Z",
+  "total_amount": 155000,
+  "donation_count": 5,
   "donations": [
     {
       "id": "35",
@@ -10,6 +10,13 @@
       "amount": 40000,
       "photo": "https://5bdacnc6s2.ucarecd.net/489997bb-c7fb-4af9-9143-c54205644618/mehrpouyahXT0kOwrlENYunsplash.jpg",
       "created_at": "2026-10-06T10:05:56.742Z"
+    },
+    {
+      "id": "38",
+      "name": "Plakatwerket",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/56b4564b-d792-458f-b5ea-11cdc50ae6df/pw.png",
+      "created_at": "2026-10-06T12:25:14.479Z"
     },
     {
       "id": "39",
