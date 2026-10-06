@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-06T12:25:22.723Z",
-  "total_amount": 155000,
-  "donation_count": 5,
+  "updated_at": "2026-10-06T12:25:24.438Z",
+  "total_amount": 160000,
+  "donation_count": 6,
   "donations": [
     {
       "id": "35",
@@ -10,6 +10,13 @@
       "amount": 40000,
       "photo": "https://5bdacnc6s2.ucarecd.net/489997bb-c7fb-4af9-9143-c54205644618/mehrpouyahXT0kOwrlENYunsplash.jpg",
       "created_at": "2026-10-06T10:05:56.742Z"
+    },
+    {
+      "id": "37",
+      "name": "Xprint",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/f76fa968-349d-454c-8483-0be74380be7a/xprint.png",
+      "created_at": "2026-10-06T12:25:14.029Z"
     },
     {
       "id": "38",
