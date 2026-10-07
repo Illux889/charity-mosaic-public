@@ -10,6 +10,8 @@ const $=id=>document.getElementById(id),canvas=$('mosaic'),ctx=canvas.getContext
 const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK'),percent=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 $('viewer').appendChild(tooltip);
+const mosaicPreview=$('mosaicPreview');
+if(mosaicPreview){mosaicPreview.addEventListener('error',()=>{mosaicPreview.hidden=true},{once:true});if(mosaicPreview.complete&&!mosaicPreview.naturalWidth)mosaicPreview.hidden=true}
 function parentOrigin(){try{if(document.referrer){const origin=new URL(document.referrer).origin;if(origin!=='null')return origin}}catch{}return'*'}
 function postToParent(message){if(window.parent!==window)window.parent.postMessage(message,parentOrigin())}
 let parentViewportHeight=null,parentViewportWidth=null;
@@ -23,7 +25,10 @@ window.addEventListener('message',event=>{
   if(origin!=='*'&&event.origin!==origin)return;
   const data=event.data;
   if(data?.type==='charity-mosaic-find-donor'){
-    if(Number.isInteger(data.index))findDonor(data.index);
+    if(Number.isInteger(data.index)&&findDonor(data.index)){
+      const artwork=$('stage').getBoundingClientRect();
+      postToParent({type:'charity-mosaic-show-artwork',artworkTop:artwork.top,artworkHeight:artwork.height});
+    }
     return;
   }
   if(data?.type!=='charity-mosaic-viewport'||typeof data.width!=='number'||typeof data.height!=='number'||!Number.isFinite(data.width)||!Number.isFinite(data.height)||data.width<=0||data.height<=0)return;
@@ -147,7 +152,25 @@ function hamilton(weights,total=CELLS){if(!weights.length||weights.some(w=>!Numb
 function score(source,target){const dL=source.mean[0]-target.mean[0],da=source.mean[1]-target.mean[1],db=source.mean[2]-target.mean[2];let structural=0,chromaticStructure=0;const gain=clamp(target.spatialStd/Math.max(.035,source.spatialStd),.55,1.3);for(let k=0;k<SUB;k++){const p=k*3,delta=(source.blocks[p]-source.mean[0])*gain-(target.blocks[p]-target.mean[0]);structural+=delta*delta;const ac=(source.blocks[p+1]-source.mean[1])*.75-(target.blocks[p+1]-target.mean[1]),bc=(source.blocks[p+2]-source.mean[2])*.75-(target.blocks[p+2]-target.mean[2]);chromaticStructure+=ac*ac+bc*bc}const edgeWeight=1+Math.min(2,target.spatialStd*12);return 1.7*dL*dL+4*(da*da+db*db)+8*edgeWeight*structural/SUB+2*chromaticStructure/SUB+.08*Math.pow(Math.max(0,source.std-.23),2)}
 function auction(cost,D,quotas){const owners=new Int32Array(CELLS).fill(-1),prices=new Float64Array(CELLS),slotDonor=new Int32Array(CELLS),heaps=[];let slot=0;for(let d=0;d<D;d++){const heap=[];for(let j=0;j<quotas[d];j++){heap.push(slot);slotDonor[slot++]=d}heaps.push(heap)}if(slot!==CELLS)throw Error('Quota conservation failed');let iterations=0;function sink(heap){let i=0;for(;;){const left=2*i+1;if(left>=heap.length)return;const right=left+1,child=right<heap.length&&prices[heap[right]]<prices[heap[left]]?right:left;if(prices[heap[i]]<=prices[heap[child]])return;[heap[i],heap[child]]=[heap[child],heap[i]];i=child}}for(const epsilon of[.015,.003,.0006]){owners.fill(-1);const queue=new Int32Array(CELLS+1);let head=0,tail=0,length=0,stageIterations=0;for(let i=0;i<CELLS;i++){queue[tail]=i;tail=(tail+1)%queue.length;length++}while(length){const cell=queue[head];head=(head+1)%queue.length;length--;let best=Infinity,second=Infinity,winningDonor=-1;const offset=cell*D;for(let d=0;d<D;d++){const heap=heaps[d];if(!heap.length)continue;const c=cost[offset+d],value=c+prices[heap[0]];if(value<best){second=best;best=value;winningDonor=d}else if(value<second)second=value;if(heap.length>1){const nextSlot=heap.length>2&&prices[heap[2]]<prices[heap[1]]?heap[2]:heap[1];second=Math.min(second,c+prices[nextSlot])}}if(winningDonor<0)throw Error('No assignment candidate');const heap=heaps[winningDonor],winningSlot=heap[0],displaced=owners[winningSlot];owners[winningSlot]=cell;prices[winningSlot]+=(Number.isFinite(second)?Math.max(0,second-best):0)+epsilon;sink(heap);if(displaced>=0){queue[tail]=displaced;tail=(tail+1)%queue.length;length++}iterations++;stageIterations++;if(stageIterations>Math.max(600000,CELLS*220))throw Error('Matching iteration limit exceeded. Use fewer distinct photos.');if(stageIterations%10000===0)progress('matcher',50+Math.min(15,iterations/10000))}}const result=new Int32Array(CELLS);for(let i=0;i<CELLS;i++)result[owners[i]]=slotDonor[i];return{assignments:result,iterations}}
 function spread(assignments,cost,D,seed,cellIndices){const random=randomGenerator(seed),activeByFull=new Int32Array(TOTAL_CELLS).fill(-1);cellIndices.forEach((cell,i)=>activeByFull[cell]=i);const neighbours=Array.from({length:CELLS},(_,i)=>{const cell=cellIndices[i],x=cell%W,y=Math.floor(cell/W),result=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const dist=Math.abs(dx)+Math.abs(dy);if(!dist||dist>2||x+dx<0||x+dx>=W||y+dy<0||y+dy>=H)continue;const other=activeByFull[(y+dy)*W+x+dx];if(other>=0)result.push([other,dist===1?.030:.010])}return result});function penalty(cell,donor,except){let p=0;for(const[other,weight]of neighbours[cell])if(other!==except&&assignments[other]===donor)p+=weight;return p}let swaps=0;for(let pass=0;pass<5;pass++)for(let i=0;i<CELLS;i++)for(let attempt=0;attempt<20;attempt++){const j=Math.floor(random()*CELLS),a=assignments[i],b=assignments[j];if(a===b||i===j)continue;const change=cost[i*D+b]+cost[j*D+a]-cost[i*D+a]-cost[j*D+b]+penalty(i,b,j)+penalty(j,a,i)-penalty(i,a,j)-penalty(j,b,i);if(change<-1e-7){assignments[i]=b;assignments[j]=a;swaps++}}return swaps}
-function makeToneCurve(source,desiredMean,detail,targetSpatialStd){const goalStd=Math.min(.18,.030+detail*.100+Math.min(.035,targetSpatialStd*.25)),sourceMean=clamp(source.mean[0],.02,.98);let slope=clamp(goalStd/Math.max(.02,source.std)*sourceMean*(1-sourceMean)/Math.max(.03,desiredMean*(1-desiredMean)),.16,1.8);const logit=new Float64Array(256);for(let i=0;i<256;i++){const x=clamp(i/255,.001,.999);logit[i]=Math.log(x/(1-x))}let lut=new Float32Array(256);for(let round=0;round<3;round++){let lo=-18,hi=18;for(let iteration=0;iteration<18;iteration++){const b=(lo+hi)/2;let average=0;for(let i=0;i<256;i++)if(source.histogram[i])average+=source.histogram[i]/(1+Math.exp(-(slope*logit[i]+b)));if(average<desiredMean)lo=b;else hi=b}const bias=(lo+hi)/2;let variance=0;for(let i=0;i<256;i++){lut[i]=1/(1+Math.exp(-(slope*logit[i]+bias)));variance+=source.histogram[i]*(lut[i]-desiredMean)**2}if(round<2)slope=clamp(slope*goalStd/Math.max(.007,Math.sqrt(variance)),.12,2.0)}return lut}
+function makeToneCurve(source,desiredMean,detail,targetSpatialStd){
+  const goalStd=Math.min(.18,.030+detail*.100+Math.min(.035,targetSpatialStd*.25)),sourceMean=clamp(source.mean[0],.02,.98);
+  let slope=clamp(goalStd/Math.max(.02,source.std)*sourceMean*(1-sourceMean)/Math.max(.03,desiredMean*(1-desiredMean)),.16,1.8);
+  const logit=new Float64Array(256);
+  for(let i=0;i<256;i++){const x=clamp(i/255,.001,.999);logit[i]=Math.log(x/(1-x))}
+  const lut=new Float32Array(256);
+  for(let round=0;round<3;round++){
+    let lo=-18,hi=18;
+    for(let iteration=0;iteration<18;iteration++){const b=(lo+hi)/2;let average=0;for(let i=0;i<256;i++)if(source.histogram[i])average+=source.histogram[i]/(1+Math.exp(-(slope*logit[i]+b)));if(average<desiredMean)lo=b;else hi=b}
+    const bias=(lo+hi)/2;let variance=0;
+    for(let i=0;i<256;i++){lut[i]=1/(1+Math.exp(-(slope*logit[i]+bias)));variance+=source.histogram[i]*(lut[i]-desiredMean)**2}
+    if(round<2)slope=clamp(slope*goalStd/Math.max(.007,Math.sqrt(variance)),.12,2.0)
+  }
+  let first=0,last=255;
+  while(first<255&&!source.histogram[first])first++;
+  while(last>0&&!source.histogram[last])last--;
+  if(last>first){const dark=lut[first],light=lut[last];for(let i=0;i<256;i++)lut[i]=dark+(light-dark)*(i-first)/(last-first)}
+  return lut;
+}
 function rgbFromLab(L,a,b){const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;return[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s]}
 function gammaByte(value){const v=clamp(value,0,1);return Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055))}
 function render(targets,donors,assignments,variantChoice,params,cellIndices){const width=W*OUT,height=H*OUT,raw=new Uint8ClampedArray(width*height*4),output=new Uint8ClampedArray(raw.length),choices=new Uint8Array(TOTAL_CELLS),D=donors.length;let compressedPixels=0;const toneProfiles=new Float32Array(TOTAL_CELLS*263);for(let activeCell=0;activeCell<CELLS;activeCell++){const cell=cellIndices[activeCell],d=assignments[activeCell],v=variantChoice[activeCell*D+d];choices[cell]=v;const variant=donors[d].variants[v],source=variant.desc,target=targets[activeCell],targetL=clamp(target.mean[0]+.035*(1-target.mean[0])**2,.17,.93),desired=mix(source.mean[0],targetL,params.strength),curve=makeToneCurve(source,desired,params.detail,target.spatialStd),colourAmount=params.strength*(1-params.originalColour),desiredA=mix(source.mean[1],target.mean[1],colourAmount),desiredB=mix(source.mean[2],target.mean[2],colourAmount),chromaGain=mix(1,.72+params.originalColour*.28,params.strength),profileOffset=cell*263;toneProfiles.set(curve,profileOffset);toneProfiles.set([source.mean[1],source.mean[2],desiredA,desiredB,chromaGain,Math.min(1,params.strength*4),params.strength],profileOffset+256);const baseX=cell%W*OUT,baseY=Math.floor(cell/W)*OUT;for(let y=0;y<OUT;y++)for(let x=0;x<OUT;x++){const sourceY=Math.min(S-1,Math.floor((y+.5)*S/OUT)),sourceX=Math.min(S-1,Math.floor((x+.5)*S/OUT)),local=sourceY*S+sourceX,src=local*4,dst=((baseY+y)*width+baseX+x)*4;raw[dst]=variant.rgba[src];raw[dst+1]=variant.rgba[src+1];raw[dst+2]=variant.rgba[src+2];raw[dst+3]=255;if(params.strength<=0){output.set(raw.subarray(dst,dst+4),dst);continue}const t=source.plane[local*3]*255,ti=clamp(Math.floor(t),0,255),tj=Math.min(255,ti+1),L=mix(source.plane[local*3],mix(curve[ti],curve[tj],t-ti),Math.min(1,params.strength*4)),a=desiredA+chromaGain*(source.plane[local*3+1]-source.mean[1]),b=desiredB+chromaGain*(source.plane[local*3+2]-source.mean[2]);let rgb=rgbFromLab(L,a,b);if(rgb.some(c=>c<0||c>1)){compressedPixels++;let lower=0,upper=1;for(let k=0;k<7;k++){const mid=(lower+upper)/2,candidate=rgbFromLab(L,a*mid,b*mid);if(candidate.some(c=>c<0||c>1))upper=mid;else lower=mid}rgb=rgbFromLab(L,a*lower,b*lower)}output[dst]=gammaByte(rgb[0]);output[dst+1]=gammaByte(rgb[1]);output[dst+2]=gammaByte(rgb[2]);output[dst+3]=255}if(activeCell%160===0)progress('toner',76+22*activeCell/CELLS)}return{output,raw,choices,compressedPixels,toneProfiles}}
@@ -340,7 +363,7 @@ function openDonor(i,cell=-1,returnFocus=null){
   syncModalState();
 }
 function focusSelected(){if(selectedCell<0)return;preview.close?.();view.zoom=12;view.x=(selectedCell%GRID_W+.5)*TILE;view.y=(Math.floor(selectedCell/GRID_W)+.5)*TILE;requestView();setTimeout(()=>canvas.focus({preventScroll:false}),30)}
-function findDonor(index){if(selectDonor(index))focusSelected()}
+function findDonor(index){if(!selectDonor(index)||selectedCell<0)return false;focusSelected();return true}
 async function loadPublication(force=false){
   clearTimeout(pollTimer);
   try{
