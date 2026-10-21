@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-20T06:27:38.266Z",
-  "total_amount": 20500,
-  "donation_count": 7,
+  "updated_at": "2026-10-21T12:38:44.109Z",
+  "total_amount": 20600,
+  "donation_count": 8,
   "donations": [
     {
       "id": "36",
@@ -52,6 +52,13 @@
       "amount": 3000,
       "photo": "https://5bdacnc6s2.ucarecd.net/aa73d849-e822-4aaf-bc61-2f6092e57dfa/wpro_elefantprint_logo5kopier.png",
       "created_at": "2026-10-08T09:16:36.964Z"
+    },
+    {
+      "id": "48",
+      "name": "Maria Olesen",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/d22e3e26-e6b7-42a9-8e0a-662e309e0ce6/a01d80e42a7fb23305b5a6636f629a7e.jpg",
+      "created_at": "2026-10-20T06:26:38.114Z"
     }
   ]
 }
