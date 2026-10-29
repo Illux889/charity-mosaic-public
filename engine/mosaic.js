@@ -393,7 +393,7 @@ async function loadPublication(force=false){
 }
 function schedulePoll(delay=POLL_MS){clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(()=>loadPublication(false),delay)}
 function startCountdown(){
-  const deadline=Date.parse('2026-11-09T23:59:00+01:00');
+  const deadline=Date.parse('2026-11-09T12:00:00+01:00');
   function render(){
     const remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));
     $('countdownDays').textContent=String(Math.floor(remaining/86400));
