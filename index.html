@@ -71,12 +71,12 @@
     <p id="calculatorNote">Antallet af felter kan ændre sig, når nye donationer kommer til.</p>
   </section>
 
-  <footer class="footer"><span id="physicalInfo">100 × 140 felter</span><span id="status">Opdateres automatisk</span></footer>
+  <footer class="footer"><span id="physicalInfo">125 × 175 cm · 100 × 140 felter · 1,25 × 1,25 cm pr. felt</span><span id="status">Opdateres automatisk</span></footer>
 </main>
 
 <dialog id="preview" aria-labelledby="previewName"><div class="dialog-head"><div><h2 id="previewName"></h2><p id="previewMeta"></p></div><button type="button" id="closePreview">Luk</button></div><div class="photo-wrap" id="previewWrap"><img id="previewImage" alt=""></div><div class="dialog-actions"><span>Hele det indsendte billede vises uden beskæring.</span><button id="findTile" type="button">Find i kunstværket</button></div></dialog>
 
-<dialog id="allDonors" aria-labelledby="allDonorsTitle"><div class="dialog-head"><div><h2 id="allDonorsTitle">Alle bidragsydere</h2><p id="allDonorsCount"></p></div><button type="button" id="closeAll">Luk</button></div><div class="all-donors-summary"><span>Samlet doneret</span><strong id="allDonorsTotal"></strong></div><div id="allDonorsList" class="all-donors-list"></div></dialog>
+<dialog id="allDonors" aria-labelledby="allDonorsTitle"><div class="dialog-head"><div><h2 id="allDonorsTitle">Alle bidragsydere</h2><p id="allDonorsCount"></p></div><button type="button" id="closeAll">Luk</button></div><div class="all-donors-summary"><span>Samlet doneret</span><strong id="allDonorsTotal"></strong></div><input id="allDonorsSearch" class="search all-donors-search" type="search" placeholder="Søg efter navn…" autocomplete="off" aria-label="Søg efter bidragsyder"><div id="allDonorsList" class="all-donors-list"></div><nav id="allDonorsPagination" class="all-donors-pagination" aria-label="Sider med bidragsydere"></nav></dialog>
 
 <script src="./engine/mosaic.js"></script>
 </body>

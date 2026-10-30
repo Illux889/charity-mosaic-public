@@ -1,13 +1,14 @@
 (() => {
 'use strict';
-const GRID_WIDTH=100,GRID_HEIGHT=140,PHOTO_SIZE=40,OVERVIEW_WIDTH=1600,POLL_MS=60000,MAX_ZOOM=40;
+const GRID_WIDTH=100,GRID_HEIGHT=140,PHOTO_SIZE=40,OVERVIEW_WIDTH=1600,POLL_MS=60000,MAX_ZOOM=40,ALL_DONORS_PAGE_SIZE=10;
+const PRINT_WIDTH_CM=125,PRINT_HEIGHT_CM=175;
 const DEFAULT_SETTINGS={tone_strength:94,photo_detail:55,original_colour:32};
 const TARGET_SRC=new URL('../target.png',document.currentScript.src).href;
 const OVERLAY_SRC=new URL('../overlay.png',document.currentScript.src).href;
 const SETTINGS_SRC=new URL('../mosaic-settings.json',document.currentScript.src).href;
 const PUBLICATION_SRC=new URL('../public-mosaic.json',document.currentScript.src).href;
 const $=id=>document.getElementById(id),canvas=$('mosaic'),ctx=canvas.getContext('2d',{alpha:false}),state=$('state'),tooltip=$('tooltip'),preview=$('preview');
-const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK'),percent=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2});
+const money=new Intl.NumberFormat('da-DK',{style:'currency',currency:'DKK',maximumFractionDigits:0}),integer=new Intl.NumberFormat('da-DK'),percent=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2}),centimeters=new Intl.NumberFormat('da-DK',{maximumFractionDigits:2});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 $('viewer').appendChild(tooltip);
 const mosaicPreview=$('mosaicPreview');
@@ -31,6 +32,11 @@ window.addEventListener('message',event=>{
     }
     return;
   }
+  if(data?.type==='charity-mosaic-select-donor'){
+    const index=data.id?publication?.donations.findIndex(d=>d.id===String(data.id)):data.index;
+    if(Number.isInteger(index))openDonor(index,-1,$('showAll'));
+    return;
+  }
   if(data?.type!=='charity-mosaic-viewport'||typeof data.width!=='number'||typeof data.height!=='number'||!Number.isFinite(data.width)||!Number.isFinite(data.height)||data.width<=0||data.height<=0)return;
   if(parentViewportHeight===data.height&&parentViewportWidth===data.width)return;
   parentViewportHeight=data.height;
@@ -45,7 +51,7 @@ try{if(document.referrer){const url=new URL(document.referrer);if(url.origin!=='
 link.addEventListener('click',e=>{if(window.parent===window)return;e.preventDefault();postToParent({type:'charity-mosaic-donate'})})
 }
 const dialogs=[preview,$('allDonors')];
-let modalOpen=false,lockedScrollY=0,previewReturnFocus=null;
+let modalOpen=false,lockedScrollY=0,previewReturnFocus=null,allDonorsPage=1;
 function syncModalState(){
   const open=dialogs.some(dialog=>dialog.open);
   if(open===modalOpen)return;
@@ -66,7 +72,7 @@ function syncModalState(){
 function donorFieldCount(index){return Number(result?.counts?.[index]||0)}
 function donorFieldPercentText(index){const count=donorFieldCount(index);return percent.format(USABLE>0?count/USABLE*100:0)+' %'}
 let GRID_W=GRID_WIDTH,GRID_H=GRID_HEIGHT,TOTAL=GRID_W*GRID_H,USABLE=TOTAL,BLOCKED=0,RENDER_WIDTH=1600,RENDER_HEIGHT=2240,TILE=16;
-let publication=null,assets=[],result=null,signature='',pollTimer=null,renderWorker=null,loadController=null;
+let publication=null,assets=[],result=null,signature='',publicationSignature='',pollTimer=null,renderWorker=null,loadController=null;
 let targetTilesCache=null,targetTilesKey='',targetImagePromise=null,targetImage=null,overlayImagePromise=null,overlayImage=null,blockedMask=null;
 let correctedCanvas=document.createElement('canvas'),rawCanvas=document.createElement('canvas');correctedCanvas.width=rawCanvas.width=RENDER_WIDTH;correctedCanvas.height=rawCanvas.height=RENDER_HEIGHT;
 let correctedContext=correctedCanvas.getContext('2d'),rawContext=rawCanvas.getContext('2d');
@@ -77,7 +83,7 @@ function hashText(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.
 function settingNumber(v,fallback){const n=Number(v);return Number.isFinite(n)?clamp(n>1?n/100:n,0,1):fallback}
 function settingsFrom(data){return{preserveOriginals:false,strength:settingNumber(data?.tone_strength,.94),detail:settingNumber(data?.photo_detail,.55),originalColour:settingNumber(data?.original_colour,.32)}}
 function gridFrom(data){const w=Number(data?.grid_width),h=Number(data?.grid_height);return{width:Number.isFinite(w)?Math.max(1,Math.round(w)):GRID_WIDTH,height:Number.isFinite(h)?Math.max(1,Math.round(h)):GRID_HEIGHT}}
-function updatePhysicalInfo(){$('physicalInfo').textContent=integer.format(GRID_W)+' × '+integer.format(GRID_H)+' felter · '+integer.format(USABLE)+' brugbare af '+integer.format(TOTAL)+' felter'}
+function updatePhysicalInfo(){$('physicalInfo').textContent=PRINT_WIDTH_CM+' × '+PRINT_HEIGHT_CM+' cm · '+integer.format(GRID_W)+' × '+integer.format(GRID_H)+' felter · '+centimeters.format(PRINT_WIDTH_CM/GRID_W)+' × '+centimeters.format(PRINT_HEIGHT_CM/GRID_H)+' cm pr. felt · '+integer.format(USABLE)+' brugbare af '+integer.format(TOTAL)+' felter'}
 function setBuildState(title,text,value=0,blocking=true){$('stateTitle').textContent=title;$('stateText').textContent=text;$('progress').value=clamp(value,0,100);state.hidden=!blocking}
 function dataUrlBlob(src){const comma=src.indexOf(','),type=src.slice(5,src.indexOf(';')),bytes=atob(src.slice(comma+1)),buf=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)buf[i]=bytes.charCodeAt(i);return new Blob([buf],{type})}
 async function fetchBlob(src,signal){if(/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(src))return dataUrlBlob(src);const u=new URL(src,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Ugyldig billedadresse.');const isTarget=u.href===TARGET_SRC;if(isTarget)u.searchParams.set('_v',Date.now().toString());const r=await fetch(u.href,{signal,mode:'cors',cache:isTarget?'no-store':'force-cache'});if(!r.ok)throw Error('Billede kunne ikke hentes ('+r.status+').');return r.blob()}
@@ -246,7 +252,13 @@ function renderAllDonors(){
   const count=Number(publication.donation_count);
   $('allDonorsCount').textContent=integer.format(Number.isFinite(count)?count:publication.donations.length)+' bidrag';
   $('allDonorsTotal').textContent=money.format(Number(publication.total_amount)||0);
-  for(const[d,i]of publication.donations.map((d,i)=>[d,i])){
+  const q=$('allDonorsSearch').value.trim().toLocaleLowerCase('da-DK');
+  const rows=publication.donations.map((d,i)=>({d,i})).filter(({d})=>!q||d.name.toLocaleLowerCase('da-DK').includes(q));
+  rows.sort((a,b)=>(b.d.amount-a.d.amount)||a.d.name.localeCompare(b.d.name,'da')||a.i-b.i);
+  const pageCount=Math.max(1,Math.ceil(rows.length/ALL_DONORS_PAGE_SIZE));
+  allDonorsPage=Math.min(allDonorsPage,pageCount);
+  if(!rows.length){const empty=document.createElement('p');empty.className='empty-list';empty.textContent='Ingen bidragsydere fundet.';list.append(empty)}
+  for(const{d,i}of rows.slice((allDonorsPage-1)*ALL_DONORS_PAGE_SIZE,allDonorsPage*ALL_DONORS_PAGE_SIZE)){
     const button=document.createElement('button');button.type='button';button.className='all-donor';button.setAttribute('aria-label',d.name+', '+money.format(d.amount)+', '+integer.format(donorFieldCount(i))+' felter. Vis billede');
     const thumb=document.createElement('span');thumb.className='all-donor-thumb';
     const fallback=document.createElement('span');fallback.className='all-donor-thumb-fallback';fallback.textContent=d.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toLocaleUpperCase('da-DK')||'•';
@@ -263,7 +275,29 @@ function renderAllDonors(){
     button.addEventListener('click',()=>{$('allDonors').close();if(window.parent!==window)syncModalState();openDonor(i,-1,$('showAll'))});
     list.append(button);
   }
+  const pagination=$('allDonorsPagination');pagination.replaceChildren();
+  if(rows.length<=ALL_DONORS_PAGE_SIZE)return;
+  function pageButton(label,page,disabled=false,current=false){const button=document.createElement('button');button.type='button';button.textContent=label;button.disabled=disabled;if(current)button.setAttribute('aria-current','page');else if(!disabled)button.addEventListener('click',()=>{allDonorsPage=page;renderAllDonors();list.scrollTop=0});pagination.append(button)}
+  pageButton('← Forrige',allDonorsPage-1,allDonorsPage===1);
+  const pages=new Set([1,pageCount,allDonorsPage-1,allDonorsPage,allDonorsPage+1]);let previous=0;
+  for(const page of [...pages].filter(page=>page>=1&&page<=pageCount).sort((a,b)=>a-b)){if(page>previous+1){const gap=document.createElement('span');gap.textContent='…';gap.setAttribute('aria-hidden','true');pagination.append(gap)}pageButton(String(page),page,false,page===allDonorsPage);previous=page}
+  pageButton('Næste →',allDonorsPage+1,allDonorsPage===pageCount);
 }
+function openAllDonors(){
+  if(!publication)return;
+  if(window.parent!==window){
+    postAllDonors('charity-mosaic-open-all-donors');
+    return;
+  }
+  $('allDonorsSearch').value='';allDonorsPage=1;renderAllDonors();$('allDonors').showModal();syncModalState();$('allDonorsSearch').focus();
+}
+function postAllDonors(type){
+  if(!publication||window.parent===window)return;
+  const ready=!!result&&signature===publicationSignature;
+  postToParent({type,donors:publication.donations.map((d,i)=>({id:d.id,name:d.name,amount:d.amount,fields:ready?donorFieldCount(i):null,photo:d.photo,index:i})),total:Number(publication.total_amount)||0});
+}
+$('allDonorsSearch').addEventListener('input',()=>{allDonorsPage=1;renderAllDonors();$('allDonorsList').scrollTop=0});
+$('allDonors').addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();$('allDonors').close()}},true);
 async function buildMosaic(pub,settings,gridWidth,gridHeight){
   stopRender();loadController=new AbortController();
   const signal=loadController.signal,first=!result;
@@ -375,7 +409,7 @@ async function loadPublication(force=false){
     if(setResp&&setResp.ok){try{settingsData={...DEFAULT_SETTINGS,...await setResp.json()}}catch{}}
     if(!Array.isArray(data.donations))throw Error('Ugyldig datafil.');
     const donations=data.donations.map(d=>({id:String(d.id??''),name:String(d.name||'Anonym'),amount:Number(d.amount)||0,photo:String(d.photo||''),created_at:String(d.created_at||'')})).sort((a,b)=>a.id.localeCompare(b.id)),grid=gridFrom(settingsData),next=hashText(JSON.stringify({donations:donations.map(d=>[d.id,d.name,d.amount,d.photo]),settings:{tone_strength:settingsData.tone_strength,photo_detail:settingsData.photo_detail,original_colour:settingsData.original_colour,grid_width:grid.width,grid_height:grid.height}}));
-    publication={...data,donations};
+    publication={...data,donations};publicationSignature=next;if(next!==signature)postAllDonors('charity-mosaic-update-all-donors');
     $('updated').textContent=data.updated_at?'Senest opdateret '+fmtDate(data.updated_at):'Senest opdateret';
     $('total').textContent=money.format(Number(data.total_amount)||0);
     $('donationCount').textContent=integer.format(Number(data.donation_count)||donations.length)+' bidrag';
@@ -387,7 +421,7 @@ async function loadPublication(force=false){
       result=null;assets=[];clearDetails();renderDonorList();renderAllDonors();state.hidden=true;$('status').textContent='Afventer de første bidrag';fitView();schedulePoll();reportHeight();return;
     }
     if(!force&&signature===next&&result){$('status').textContent='Opdateret';renderCalculator();schedulePoll();return}
-    if(await buildMosaic(publication,settingsFrom(settingsData),grid.width,grid.height))signature=next;
+    if(await buildMosaic(publication,settingsFrom(settingsData),grid.width,grid.height)){signature=next;postAllDonors('charity-mosaic-update-all-donors')}
     schedulePoll();reportHeight();
   }catch(e){console.error(e);if(!result)setBuildState('Kunstværket kunne ikke indlæses.','Prøv igen om et øjeblik.',0,true);$('status').textContent='Forbindelsesfejl';schedulePoll(15000)}
 }
@@ -405,7 +439,7 @@ function startCountdown(){
   }
   if(render()){const interval=setInterval(()=>{if(!render())clearInterval(interval)},1000)}
 }
-$('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});preview.addEventListener('close',()=>{syncModalState();previewReturnFocus?.focus({preventScroll:true});previewReturnFocus=null});$('showAll').addEventListener('click',()=>{renderAllDonors();$('allDonors').showModal();syncModalState();$('closeAll').focus()});$('closeAll').addEventListener('click',()=>$('allDonors').close());$('allDonors').addEventListener('click',e=>{if(e.target===$('allDonors'))$('allDonors').close()});$('allDonors').addEventListener('close',()=>{syncModalState();if(!preview.open)$('showAll').focus({preventScroll:true})});
+$('zoomIn').addEventListener('click',()=>setZoom(view.zoom*1.5));$('zoomOut').addEventListener('click',()=>setZoom(view.zoom/1.5));$('fit').addEventListener('click',fitView);$('zoomRange').addEventListener('input',e=>setZoom(MAX_ZOOM**(Number(e.target.value)/100)));$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewer').requestFullscreen()}catch{$('hint').textContent='Fuld skærm er ikke tilladt i denne visning.'}});document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Luk fuld skærm':'Fuld skærm';requestView()});$('search').addEventListener('input',renderDonorList);$('sort').addEventListener('change',renderDonorList);$('closePreview').addEventListener('click',()=>preview.close?.());$('findTile').addEventListener('click',focusSelected);preview.addEventListener('click',e=>{if(e.target===preview)preview.close?.()});preview.addEventListener('close',()=>{syncModalState();previewReturnFocus?.focus({preventScroll:true});previewReturnFocus=null});$('showAll').addEventListener('click',openAllDonors);$('closeAll').addEventListener('click',()=>$('allDonors').close());$('allDonors').addEventListener('click',e=>{if(e.target===$('allDonors'))$('allDonors').close()});$('allDonors').addEventListener('close',()=>{syncModalState();if(!preview.open)$('showAll').focus({preventScroll:true})});
 canvas.addEventListener('pointerdown',e=>{if(!result||(e.pointerType==='mouse'&&e.button!==0))return;canvas.focus({preventScroll:true});tooltip.style.display='none';if(!pointers.size){moved=false;pointerOrigin={x:e.clientX,y:e.clientY}}pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{canvas.setPointerCapture(e.pointerId)}catch{}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)){showTooltip(e);return}if(!metrics())return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerOrigin&&Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>4)moved=true;if(moved){view.x-=(e.clientX-prev.x)/view.scale;view.y-=(e.clientY-prev.y)/view.scale;canvas.classList.add('dragging');requestView()}});function endPointer(e,cancelled){if(!pointers.has(e.pointerId))return;pointers.delete(e.pointerId);try{canvas.releasePointerCapture(e.pointerId)}catch{}if(!pointers.size){canvas.classList.remove('dragging');if(!cancelled&&!moved){const h=hit(e.clientX,e.clientY);if(h&&h.donor>=0)openDonor(h.donor,h.cell)}moved=false;pointerOrigin=null}}canvas.addEventListener('pointerup',e=>endPointer(e,false));canvas.addEventListener('pointercancel',e=>endPointer(e,true));canvas.addEventListener('pointerleave',()=>{if(!pointers.size)tooltip.style.display='none'});canvas.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();const r=canvas.getBoundingClientRect(),delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?r.height:1);setZoom(view.zoom*Math.exp(-clamp(delta,-500,500)*.002),e.clientX-r.left,e.clientY-r.top)},{passive:false});canvas.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){e.preventDefault();setZoom(view.zoom*1.5)}else if(e.key==='-'||e.key==='_'){e.preventDefault();setZoom(view.zoom/1.5)}else if(e.key==='Home'){e.preventDefault();fitView()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(pollTimer);else loadPublication(false)});window.addEventListener('resize',()=>{fitArtworkToViewport(parentViewportHeight??window.innerHeight);requestView();reportHeight()});if('ResizeObserver'in window)new ResizeObserver(()=>{requestView();reportHeight()}).observe($('app'));window.addEventListener('pagehide',()=>{clearTimeout(pollTimer);stopRender();clearDetails()});
 let lastReportedHeight=null;

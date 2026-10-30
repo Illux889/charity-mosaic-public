@@ -7,6 +7,8 @@ Root-siden viser ét CoolUnite/Hornsleth-kunstværk. Den kan indlejres i en ifra
 - `target.png` og `overlay.png` er de justerede 1400 × 1960 web-assets. Begge tegnes i samme 5:7-koordinatsystem.
 - `public-mosaic.json` og `mosaic-settings.json` bliver i root med uændret schema, fordi n8n skriver til disse stier.
 
+Den færdige fysiske printstørrelse er 125 × 175 cm. Mosaikken har stadig et grid på 100 × 140 felter, så hvert felt måler 1,25 × 1,25 cm i print. Overlayet dækker 1.544 felter helt, og 12.456 af de 14.000 felter er brugbare.
+
 Donorfelter fordeles på alle celler, som ikke er fuldt dækket af weboverlayet. En celle blokeres kun, når alle dens overlay-pixels har alpha på mindst 250. Celler langs kanten beholder derfor deres donor-billede under det originale overlay, som tegnes sidst på samme canvas og med samme koordinatsystem som target. Transparente target-pixels i randceller får referencefarve fra cellens synlige target-pixels, så de ikke giver en lys kant.
 
 Den offentlige side viser kun den interaktive mosaik.
