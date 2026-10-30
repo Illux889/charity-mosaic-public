@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-30T08:42:19.782Z",
-  "total_amount": 19311,
-  "donation_count": 13,
+  "updated_at": "2026-10-30T08:42:21.733Z",
+  "total_amount": 21533,
+  "donation_count": 14,
   "donations": [
     {
       "id": "36",
@@ -66,6 +66,13 @@
       "amount": 250,
       "photo": "https://5bdacnc6s2.ucarecd.net/ab1db3b4-7778-41d8-bd28-3804484deb7c/IMG_20261029_045308.jpg",
       "created_at": "2026-10-29T07:59:43.780Z"
+    },
+    {
+      "id": "52",
+      "name": "\"Drikkepenge\" Fra \"23. August 2026\" ;)",
+      "amount": 2222,
+      "photo": "https://5bdacnc6s2.ucarecd.net/fd63bd26-4c90-4d07-80e3-94bf1645234d/FraTitrintur23August2026.jpg",
+      "created_at": "2026-10-30T08:38:32.117Z"
     },
     {
       "id": "53",
