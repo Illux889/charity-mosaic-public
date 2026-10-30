@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-30T08:42:21.733Z",
-  "total_amount": 21533,
-  "donation_count": 14,
+  "updated_at": "2026-10-30T08:42:23.660Z",
+  "total_amount": 22033,
+  "donation_count": 15,
   "donations": [
     {
       "id": "36",
@@ -66,6 +66,13 @@
       "amount": 250,
       "photo": "https://5bdacnc6s2.ucarecd.net/ab1db3b4-7778-41d8-bd28-3804484deb7c/IMG_20261029_045308.jpg",
       "created_at": "2026-10-29T07:59:43.780Z"
+    },
+    {
+      "id": "51",
+      "name": "FotoSbySRose",
+      "amount": 500,
+      "photo": "https://5bdacnc6s2.ucarecd.net/8e3a9ac1-9c00-4a05-95ae-ef2c771e2cd0/20261029_09154911111111211.jpg",
+      "created_at": "2026-10-30T08:38:19.127Z"
     },
     {
       "id": "52",
