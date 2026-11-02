@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-02T08:42:12.902Z",
-  "total_amount": 25233,
-  "donation_count": 23,
+  "updated_at": "2026-11-02T08:42:16.195Z",
+  "total_amount": 25240,
+  "donation_count": 24,
   "donations": [
     {
       "id": "36",
@@ -115,6 +115,13 @@
       "amount": 550,
       "photo": "https://5bdacnc6s2.ucarecd.net/e49a14fa-486f-4b6b-81de-afd2071369cb/468101590_10169528215645257_7380962133016980206_n.jpg",
       "created_at": "2026-10-30T08:39:16.970Z"
+    },
+    {
+      "id": "61",
+      "name": "Jonas",
+      "amount": 7,
+      "photo": "https://5bdacnc6s2.ucarecd.net/1035212f-0200-40e7-86b5-433f4f4e1014/IMG_1376.jpeg",
+      "created_at": "2026-11-02T08:39:04.742Z"
     },
     {
       "id": "62",
