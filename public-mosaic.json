@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-02T08:42:27.159Z",
-  "total_amount": 25713,
-  "donation_count": 27,
+  "updated_at": "2026-11-02T08:42:29.995Z",
+  "total_amount": 25813,
+  "donation_count": 28,
   "donations": [
     {
       "id": "36",
@@ -115,6 +115,13 @@
       "amount": 550,
       "photo": "https://5bdacnc6s2.ucarecd.net/e49a14fa-486f-4b6b-81de-afd2071369cb/468101590_10169528215645257_7380962133016980206_n.jpg",
       "created_at": "2026-10-30T08:39:16.970Z"
+    },
+    {
+      "id": "57",
+      "name": "Chr. A. Skaarup-KJellerup",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/f0eb3f55-6752-4276-9113-d53d9bf7c800/ChrASkaarupKjellerup.jpg",
+      "created_at": "2026-11-02T08:38:16.356Z"
     },
     {
       "id": "58",
