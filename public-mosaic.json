@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-10-30T08:42:25.567Z",
-  "total_amount": 23533,
-  "donation_count": 16,
+  "updated_at": "2026-11-02T08:41:47.694Z",
+  "total_amount": 23633,
+  "donation_count": 17,
   "donations": [
     {
       "id": "36",
@@ -115,6 +115,13 @@
       "amount": 550,
       "photo": "https://5bdacnc6s2.ucarecd.net/e49a14fa-486f-4b6b-81de-afd2071369cb/468101590_10169528215645257_7380962133016980206_n.jpg",
       "created_at": "2026-10-30T08:39:16.970Z"
+    },
+    {
+      "id": "68",
+      "name": "ANNI KRISTINE RAUN ANDERSEN",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/de0d1548-b7f8-4c90-ba39-d7839a57b129/englensverden.jpg",
+      "created_at": "2026-11-02T08:40:12.120Z"
     }
   ]
 }
