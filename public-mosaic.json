@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-02T08:42:20.119Z",
-  "total_amount": 25352,
-  "donation_count": 25,
+  "updated_at": "2026-11-02T08:42:23.642Z",
+  "total_amount": 25602,
+  "donation_count": 26,
   "donations": [
     {
       "id": "36",
@@ -115,6 +115,13 @@
       "amount": 550,
       "photo": "https://5bdacnc6s2.ucarecd.net/e49a14fa-486f-4b6b-81de-afd2071369cb/468101590_10169528215645257_7380962133016980206_n.jpg",
       "created_at": "2026-10-30T08:39:16.970Z"
+    },
+    {
+      "id": "59",
+      "name": "Hypnose/psykoterapi Bettina Østrand",
+      "amount": 250,
+      "photo": "https://5bdacnc6s2.ucarecd.net/3e0996cc-daba-4c49-b86b-9d43b2b87772/20261030_134940.jpg",
+      "created_at": "2026-11-02T08:38:42.857Z"
     },
     {
       "id": "60",
