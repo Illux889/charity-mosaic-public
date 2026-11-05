@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-04T07:55:49.465Z",
-  "total_amount": 26313,
-  "donation_count": 29,
+  "updated_at": "2026-11-05T12:21:23.300Z",
+  "total_amount": 31313,
+  "donation_count": 30,
   "donations": [
     {
       "id": "36",
@@ -206,6 +206,13 @@
       "amount": 500,
       "photo": "https://5bdacnc6s2.ucarecd.net/bf80a72a-88ae-4490-8717-e33f4ff48f4c/Sk%C3%A6rmbillede%202026-11-02%20kl.%2011.31.10.png",
       "created_at": "2026-11-04T07:55:44.379Z"
+    },
+    {
+      "id": "71",
+      "name": "Rhiger Holding",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/6aa8c161-bf3d-4bb8-8193-4f61556c4ae4/aarhusdenmarkmarch132022600nw2357895741kopier.jpg",
+      "created_at": "2026-11-05T12:08:01.774Z"
     }
   ]
 }
