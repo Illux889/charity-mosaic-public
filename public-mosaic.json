@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-06T13:08:26.155Z",
-  "total_amount": 33763,
-  "donation_count": 37,
+  "updated_at": "2026-11-06T13:08:28.641Z",
+  "total_amount": 34318,
+  "donation_count": 38,
   "donations": [
     {
       "id": "36",
@@ -213,6 +213,13 @@
       "amount": 5000,
       "photo": "https://5bdacnc6s2.ucarecd.net/6aa8c161-bf3d-4bb8-8193-4f61556c4ae4/aarhusdenmarkmarch132022600nw2357895741kopier.jpg",
       "created_at": "2026-11-05T12:08:01.774Z"
+    },
+    {
+      "id": "72",
+      "name": "VELKRO",
+      "amount": 555,
+      "photo": "https://5bdacnc6s2.ucarecd.net/7214d797-321c-4eba-8d07-d5ba11bc7429/VELKRO.png",
+      "created_at": "2026-11-06T13:06:39.413Z"
     },
     {
       "id": "73",
