@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-06T13:08:09.048Z",
-  "total_amount": 31713,
-  "donation_count": 32,
+  "updated_at": "2026-11-06T13:08:12.319Z",
+  "total_amount": 31963,
+  "donation_count": 33,
   "donations": [
     {
       "id": "36",
@@ -220,6 +220,13 @@
       "amount": 100,
       "photo": "https://5bdacnc6s2.ucarecd.net/746bdbd4-9e8f-40ec-9e14-6a2c5dd505fd/75ca6ca056cd0f4fc84412a0ea113880.jpeg",
       "created_at": "2026-11-06T13:07:41.497Z"
+    },
+    {
+      "id": "79",
+      "name": "Patrik Sørensen",
+      "amount": 250,
+      "photo": "https://5bdacnc6s2.ucarecd.net/72e7f698-6fdf-4819-8636-c3ddf7ef8a38/IMG_6350.jpeg",
+      "created_at": "2026-11-06T13:07:49.632Z"
     },
     {
       "id": "80",
