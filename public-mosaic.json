@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-05T12:21:23.300Z",
-  "total_amount": 31313,
-  "donation_count": 30,
+  "updated_at": "2026-11-06T13:08:05.041Z",
+  "total_amount": 31613,
+  "donation_count": 31,
   "donations": [
     {
       "id": "36",
@@ -213,6 +213,13 @@
       "amount": 5000,
       "photo": "https://5bdacnc6s2.ucarecd.net/6aa8c161-bf3d-4bb8-8193-4f61556c4ae4/aarhusdenmarkmarch132022600nw2357895741kopier.jpg",
       "created_at": "2026-11-05T12:08:01.774Z"
+    },
+    {
+      "id": "80",
+      "name": "Lyngdal-Christensen",
+      "amount": 300,
+      "photo": "https://5bdacnc6s2.ucarecd.net/23fc92b0-6a2f-4bdf-8908-bdbfbd3c3155/IMG_1681.jpeg",
+      "created_at": "2026-11-06T13:08:01.075Z"
     }
   ]
 }
