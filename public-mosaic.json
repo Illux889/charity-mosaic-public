@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-06T13:08:14.868Z",
-  "total_amount": 32063,
-  "donation_count": 34,
+  "updated_at": "2026-11-06T13:08:18.643Z",
+  "total_amount": 32163,
+  "donation_count": 35,
   "donations": [
     {
       "id": "36",
@@ -213,6 +213,13 @@
       "amount": 5000,
       "photo": "https://5bdacnc6s2.ucarecd.net/6aa8c161-bf3d-4bb8-8193-4f61556c4ae4/aarhusdenmarkmarch132022600nw2357895741kopier.jpg",
       "created_at": "2026-11-05T12:08:01.774Z"
+    },
+    {
+      "id": "76",
+      "name": "Malthe",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/cfae6e81-1dac-45ae-a171-8d6d1028ef16/IMG_0656.jpeg",
+      "created_at": "2026-11-06T13:07:37.718Z"
     },
     {
       "id": "77",
