@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-06T13:08:28.641Z",
-  "total_amount": 34318,
-  "donation_count": 38,
+  "updated_at": "2026-11-06T13:08:30.812Z",
+  "total_amount": 34418,
+  "donation_count": 39,
   "donations": [
     {
       "id": "36",
@@ -227,6 +227,13 @@
       "amount": 1500,
       "photo": "https://5bdacnc6s2.ucarecd.net/5bfb03ae-c5b3-4479-b89c-810d2692ddf5/download.jpg",
       "created_at": "2026-11-06T13:06:42.546Z"
+    },
+    {
+      "id": "74",
+      "name": "Lene Jensen",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/7362814f-18c7-49e5-be8b-acbe6310aa78/IMG_2052.jpeg",
+      "created_at": "2026-11-06T13:07:32.371Z"
     },
     {
       "id": "75",
