@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-08T20:13:27.951Z",
-  "total_amount": 62118,
-  "donation_count": 55,
+  "updated_at": "2026-11-08T20:13:30.464Z",
+  "total_amount": 62418,
+  "donation_count": 56,
   "donations": [
     {
       "id": "36",
@@ -367,6 +367,13 @@
       "amount": 100,
       "photo": "https://5bdacnc6s2.ucarecd.net/34dc5f23-e5ec-45a3-a18d-710546d741d2/A6725551D2454B5D9CCE142CDC19A2C0.PNG",
       "created_at": "2026-11-06T16:01:37.414Z"
+    },
+    {
+      "id": "94",
+      "name": "Jeppe Bladt",
+      "amount": 300,
+      "photo": "https://5bdacnc6s2.ucarecd.net/602cff8a-10f1-4a35-a7ba-ce12f576f76c/IMG_1435.jpeg",
+      "created_at": "2026-11-08T20:07:31.555Z"
     },
     {
       "id": "95",
