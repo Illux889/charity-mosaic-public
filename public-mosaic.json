@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-08T20:13:25.993Z",
-  "total_amount": 62018,
-  "donation_count": 54,
+  "updated_at": "2026-11-08T20:13:27.951Z",
+  "total_amount": 62118,
+  "donation_count": 55,
   "donations": [
     {
       "id": "36",
@@ -381,6 +381,13 @@
       "amount": 100,
       "photo": "https://5bdacnc6s2.ucarecd.net/41176a43-123d-4b07-9f5b-32b4b5a5583b/IMG_20261104_162928311_HDR_PCT.jpg",
       "created_at": "2026-11-08T20:07:35.314Z"
+    },
+    {
+      "id": "97",
+      "name": "Gustav Nees",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/f97e17d6-8a69-4dc4-9d79-5c96d09b10f6/image.jpg",
+      "created_at": "2026-11-08T20:07:36.805Z"
     }
   ]
 }
