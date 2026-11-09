@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-09T07:22:28.959Z",
-  "total_amount": 63268,
-  "donation_count": 59,
+  "updated_at": "2026-11-09T07:57:53.456Z",
+  "total_amount": 68823,
+  "donation_count": 60,
   "donations": [
     {
       "id": "100",
@@ -10,6 +10,13 @@
       "amount": 500,
       "photo": "https://5bdacnc6s2.ucarecd.net/2c1a283b-1954-4559-a849-8bfdcd40ac15/IMG_1663.jpeg",
       "created_at": "2026-11-09T07:22:16.498Z"
+    },
+    {
+      "id": "101",
+      "name": "Henrik Marker Holding",
+      "amount": 5555,
+      "photo": "https://5bdacnc6s2.ucarecd.net/019ab48f-fb7a-4713-ae4e-d8c2683d04a6/IMG_0119.JPG",
+      "created_at": "2026-11-09T07:57:21.415Z"
     },
     {
       "id": "36",
