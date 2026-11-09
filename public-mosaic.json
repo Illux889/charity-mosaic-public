@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-09T07:22:24.910Z",
-  "total_amount": 63168,
-  "donation_count": 58,
+  "updated_at": "2026-11-09T07:22:28.959Z",
+  "total_amount": 63268,
+  "donation_count": 59,
   "donations": [
     {
       "id": "100",
@@ -409,6 +409,13 @@
       "amount": 250,
       "photo": "https://5bdacnc6s2.ucarecd.net/b68ffc8e-7c40-4b7c-be1a-62f39240b657/IMG20240905225706.jpg",
       "created_at": "2026-11-09T07:22:14.378Z"
+    },
+    {
+      "id": "99",
+      "name": "Ümlaut",
+      "amount": 100,
+      "photo": "https://5bdacnc6s2.ucarecd.net/aa7c2dac-172a-4180-b91d-493bcf16cde9/E64D80EEFE014019A8051D1C86F54668.png",
+      "created_at": "2026-11-09T07:22:16.485Z"
     }
   ]
 }
