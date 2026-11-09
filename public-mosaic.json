@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-09T07:22:21.057Z",
-  "total_amount": 62918,
-  "donation_count": 57,
+  "updated_at": "2026-11-09T07:22:24.910Z",
+  "total_amount": 63168,
+  "donation_count": 58,
   "donations": [
     {
       "id": "100",
@@ -402,6 +402,13 @@
       "amount": 100,
       "photo": "https://5bdacnc6s2.ucarecd.net/f97e17d6-8a69-4dc4-9d79-5c96d09b10f6/image.jpg",
       "created_at": "2026-11-08T20:07:36.805Z"
+    },
+    {
+      "id": "98",
+      "name": "Thomas Holm Thomsen",
+      "amount": 250,
+      "photo": "https://5bdacnc6s2.ucarecd.net/b68ffc8e-7c40-4b7c-be1a-62f39240b657/IMG20240905225706.jpg",
+      "created_at": "2026-11-09T07:22:14.378Z"
     }
   ]
 }
