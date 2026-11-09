@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-09T09:34:40.949Z",
-  "total_amount": 69223,
-  "donation_count": 62,
+  "updated_at": "2026-11-09T10:33:19.697Z",
+  "total_amount": 74223,
+  "donation_count": 63,
   "donations": [
     {
       "id": "100",
@@ -31,6 +31,13 @@
       "amount": 200,
       "photo": "https://5bdacnc6s2.ucarecd.net/4666668a-c4bf-4db0-bcdc-452fa1c380de/ManchesterUnitedLogoPNGTransparentPicture.png",
       "created_at": "2026-11-09T09:34:37.031Z"
+    },
+    {
+      "id": "104",
+      "name": "RT 82 Kjellerup",
+      "amount": 5000,
+      "photo": "https://5bdacnc6s2.ucarecd.net/d685f4dd-5dec-414a-b20f-f5d4fd8a78d5/Skrmbillede20261008kl103801.png",
+      "created_at": "2026-11-09T10:33:14.733Z"
     },
     {
       "id": "36",
