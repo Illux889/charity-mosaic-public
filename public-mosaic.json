@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "updated_at": "2026-11-11T13:39:23.651Z",
-  "total_amount": 79223,
-  "donation_count": 64,
+  "updated_at": "2026-11-11T13:42:42.685Z",
+  "total_amount": 79123,
+  "donation_count": 63,
   "donations": [
     {
       "id": "100",
@@ -423,13 +423,6 @@
       "amount": 5000,
       "photo": "https://5bdacnc6s2.ucarecd.net/04764f50-b16c-465e-8100-a3ca236d2960/Vikiallo_2F_ORGLOGO.jpg",
       "created_at": "2026-11-08T20:07:34.039Z"
-    },
-    {
-      "id": "96",
-      "name": "Familien Hartig Goodall",
-      "amount": 100,
-      "photo": "https://5bdacnc6s2.ucarecd.net/41176a43-123d-4b07-9f5b-32b4b5a5583b/IMG_20261104_162928311_HDR_PCT.jpg",
-      "created_at": "2026-11-08T20:07:35.314Z"
     },
     {
       "id": "97",
